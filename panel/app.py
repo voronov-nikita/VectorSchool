@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 
 app = Flask(__name__)
-DATABASE = "achievements.db"
+DATABASE = "../achievements.db"
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)

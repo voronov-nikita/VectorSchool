@@ -8,7 +8,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TOKEN = "6089674486:AAEJE6Vajx0gbnQk6bPJjq98J2Dekrpmio0"
+TOKEN = ""
 
 # Обработчики команд
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
