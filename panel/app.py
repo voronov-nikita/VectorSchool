@@ -1,17 +1,20 @@
-from flask import Flask, render_template_string, request, redirect, url_for, session, flash
+from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, flash
 from flask_session import Session
+from models import db, User
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+import os
 
 app = Flask(__name__)
-app.secret_key = 'super-secret-key'
+app.secret_key = 'super-secret-key-Vector2025'
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Пользователи: username: {password, role}
-users = {
-    "admin": {"password": "qsc[;.", "role": "admin"},
-    "curator": {"password": "123$%zxcv", "role": "curator"},
-}
+# SQLite, файл базы - local SQLite в папке проекта
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///users.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
 
 # Меню кнопок для ролей
 menu_buttons = {
@@ -28,88 +31,7 @@ menu_buttons = {
     ],
 }
 
-# Шаблон с боковым меню и кнопкой выхода, принимает список кнопок
-base_template = """
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Приёмная комиссия РТУ МИРЭА</title>
-    <style>
-        body { margin:0; font-family: Arial, sans-serif; background:#eceff1; }
-        .sidebar { width: 220px; background: #212121; color:white; height: 100vh; position: fixed; padding: 20px; box-sizing: border-box; }
-        .sidebar h2 { margin-top: 0; margin-bottom: 20px; font-weight: bold; font-size: 19px;}
-        .sidebar a { display: block; color: white; text-decoration:none; margin: 10px 0; font-size: 16px;}
-        .sidebar a:hover { text-decoration: underline; }
-        .content { margin-left: 240px; padding: 30px; background: #eceff1; min-height: 100vh; }
-        .logout-btn { position: absolute; bottom: 20px; left: 20px; background: #444; border:none; color:white; padding: 10px 15px; cursor: pointer; font-size: 14px;}
-        .logout-btn:hover { background: #666; }
-        .header-box { background:white; padding:15px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 25px; }
-    </style>
-</head>
-<body>
-    <div class="sidebar">
-        <h2>Приёмная <br><b>комиссия<br>РТУ МИРЭА</b></h2>
-        {% for name, endpoint in buttons %}
-            <a href="{{ url_for(endpoint) }}">{{ name }}</a>
-        {% endfor %}
-        <form action="{{ url_for('logout') }}" method="post" style="margin-top:40px;">
-            <button type="submit" class="logout-btn">Выход из аккаунта</button>
-        </form>
-    </div>
-    <div class="content">
-        <div class="header-box"><h3>{{ title }}</h3>{% if subtitle %}<div style="font-size: 12px; color: #666;">{{ subtitle }}</div>{% endif %}</div>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div style="color: {% if category == 'error' %}red{% else %}green{% endif %}; margin-bottom: 10px;">
-                {{ message }}
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-        {{ content|safe }}
-    </div>
-</body>
-</html>
-"""
-
-login_template = """
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Авторизация</title>
-    <style>
-        body { font-family: Arial, sans-serif; background:#eceff1; display:flex; justify-content:center; align-items:center; height:100vh; }
-        .login-box { background:white; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius:5px; }
-        label { display:block; margin-bottom: 8px; font-weight: bold; }
-        input { width: 250px; margin-bottom: 15px; padding: 8px; border: 1px solid #ccc; border-radius: 3px; }
-        button { padding: 10px 20px; background: #212121; color:white; border:none; cursor:pointer; border-radius: 3px; }
-        button:hover { background: #444; }
-        .error { color:red; margin-bottom: 10px; }
-    </style>
-</head>
-<body>
-    <div class="login-box">
-        <h2>Вход в систему</h2>
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
-        <form method="post">
-            <label for="username">Имя пользователя</label>
-            <input type="text" name="username" id="username" autocomplete="off" required autofocus>
-            <label for="password">Пароль</label>
-            <input type="password" name="password" id="password" required>
-            <button type="submit">Войти</button>
-        </form>
-    </div>
-</body>
-</html>
-"""
-
 def login_required(f):
-    from functools import wraps
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "username" not in session:
@@ -117,7 +39,19 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@app.route("/", methods=["GET"])
+@app.before_request
+def create_tables():
+    db.create_all()
+
+    # Инициализация пользователями, только если их еще нет
+    if not User.query.filter_by(username='admin').first():
+        admin = User(username='admin', password=generate_password_hash('qsc[;.'), role='admin')
+        curator = User(username='curator', password=generate_password_hash('123$%zxcv'), role='curator')
+        db.session.add(admin)
+        db.session.add(curator)
+        db.session.commit()
+
+@app.route("/")
 def index():
     if "username" in session:
         return redirect(url_for("dashboard"))
@@ -129,15 +63,15 @@ def login():
     if request.method == "POST":
         username = request.form.get("username").strip()
         password = request.form.get("password")
-        user = users.get(username)
+        user = User.query.filter_by(username=username).first()
 
-        if user and user["password"] == password:
-            session["username"] = username
-            session["role"] = user["role"]
+        if user and check_password_hash(user.password, password):
+            session["username"] = user.username
+            session["role"] = user.role
             return redirect(url_for("dashboard"))
         else:
-            return render_template_string(login_template, error="Неверное имя пользователя или пароль")
-    return render_template_string(login_template, error=None)
+            return render_template("login.html", error="Неверное имя пользователя или пароль")
+    return render_template("login.html", error=None)
 
 @app.route("/logout", methods=["POST"])
 @login_required
@@ -150,13 +84,14 @@ def logout():
 def dashboard():
     role = session.get("role")
     buttons = menu_buttons.get(role, [])
-    return render_template_string(base_template,
-                                  buttons=buttons,
-                                  title="Панель администрирования",
-                                  subtitle="Управление заявками абитуриентов",
-                                  content="<p>Добро пожаловать, {}!</p>".format(session["username"]))
+    content = f"<p>Добро пожаловать, {session.get('username')}!</p>"
+    return render_template("base.html",
+                           buttons=buttons,
+                           title="Панель администрирования",
+                           subtitle="Управление заявками абитуриентов",
+                           content=content,
+                           current_user=session.get("username"))
 
-# Создание нового пользователя (только для админа)
 @app.route("/create_user", methods=["GET", "POST"])
 @login_required
 def create_user():
@@ -165,16 +100,19 @@ def create_user():
         return redirect(url_for("dashboard"))
 
     if request.method == "POST":
-        new_username = request.form.get("username").strip()
-        new_password = request.form.get("password")
-        new_role = request.form.get("role")
+        new_username = request.form.get("username", "").strip()
+        new_password = request.form.get("password", "")
+        new_role = request.form.get("role", "")
 
         if not new_username or not new_password or new_role not in ["admin", "curator"]:
             flash("Заполните все поля правильно.", "error")
-        elif new_username in users:
+        elif User.query.filter_by(username=new_username).first():
             flash("Пользователь с таким именем уже существует.", "error")
         else:
-            users[new_username] = {"password": new_password, "role": new_role}
+            hashed_password = generate_password_hash(new_password)
+            new_user = User(username=new_username, password=hashed_password, role=new_role)
+            db.session.add(new_user)
+            db.session.commit()
             flash(f"Пользователь '{new_username}' успешно создан!", "success")
 
     buttons = menu_buttons.get("admin")
@@ -192,24 +130,36 @@ def create_user():
         <button type="submit" style="padding: 10px 15px; cursor:pointer;">Создать пользователя</button>
     </form>
     """
-    return render_template_string(base_template,
-                                  buttons=buttons,
-                                  title="Создание нового пользователя",
-                                  subtitle="",
-                                  content=form_html)
+    return render_template("base.html",
+                           buttons=buttons,
+                           title="Создание нового пользователя",
+                           subtitle="",
+                           content=form_html,
+                           current_user=session.get("username"))
 
-# Остальные страницы - просто заглушки для примера
 @app.route("/knowledge_base")
 @login_required
 def knowledge_base():
     buttons = menu_buttons.get(session.get("role"))
-    return render_template_string(base_template, buttons=buttons, title="База знаний", subtitle="", content="<p>Здесь база знаний...</p>")
+    content = "<p>Здесь база знаний...</p>"
+    return render_template("base.html",
+                           buttons=buttons,
+                           title="База знаний",
+                           subtitle="",
+                           content=content,
+                           current_user=session.get("username"))
 
 @app.route("/events")
 @login_required
 def events():
     buttons = menu_buttons.get(session.get("role"))
-    return render_template_string(base_template, buttons=buttons, title="Мероприятия", subtitle="", content="<p>Информация о мероприятиях...</p>")
+    content = "<p>Информация о мероприятиях...</p>"
+    return render_template("base.html",
+                           buttons=buttons,
+                           title="Мероприятия",
+                           subtitle="",
+                           content=content,
+                           current_user=session.get("username"))
 
 @app.route("/certificates")
 @login_required
@@ -218,7 +168,13 @@ def certificates():
         flash("Доступ запрещён.", "error")
         return redirect(url_for("dashboard"))
     buttons = menu_buttons.get("admin")
-    return render_template_string(base_template, buttons=buttons, title="Банк сертификатов", subtitle="", content="<p>Здесь банк сертификатов...</p>")
+    content = "<p>Здесь банк сертификатов...</p>"
+    return render_template("base.html",
+                           buttons=buttons,
+                           title="Банк сертификатов",
+                           subtitle="",
+                           content=content,
+                           current_user=session.get("username"))
 
 @app.route("/main_buttons")
 @login_required
@@ -227,7 +183,14 @@ def main_buttons():
         flash("Доступ запрещён.", "error")
         return redirect(url_for("dashboard"))
     buttons = menu_buttons.get("admin")
-    return render_template_string(base_template, buttons=buttons, title="Кнопки на главной странице", subtitle="", content="<p>Управление кнопками главной страницы...</p>")
+    content = "<p>Управление кнопками главной страницы...</p>"
+    return render_template("base.html",
+                           buttons=buttons,
+                           title="Кнопки на главной странице",
+                           subtitle="",
+                           content=content,
+                           current_user=session.get("username"))
 
 if __name__ == "__main__":
+    # При запуске убедитесь, что SQLite файл создан и таблицы есть
     app.run(debug=True)
