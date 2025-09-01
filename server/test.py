@@ -1,48 +1,42 @@
 from database import add_user
 
 def add_test_users():
-    users = [
+    test_users = [
         {
-            "fio": "Иванов Иван Иванович",
-            "login": "ivanov_ii",
-            "password": "password1",
-            "telegram": "@ivanov_ii",
-            "email": "ivanov@example.com",
-            "phone": "+79001234567",
-            "group_name": "БПИ234",
-            "birth_date": "1998-03-12",
-            "access_level": "боец"
+            'fio': 'Иванов Иван Иванович',
+            'login': 'ivanov_ii',
+            'password': 'password123',
+            'telegram': '@ivanov',
+            'email': 'ivanov@example.com',
+            'phone': '1234567890',
+            'group_name': 'Группа 1',
+            'birth_date': '1990-01-01',
+            'access_level': 'боец',
+            'rating': 28.5,
+            'attendance': 14,
+            'achievements': '1) Победа на олимпиаде\n2) Лучший студент года'
         },
         {
-            "fio": "Петров Пётр Петрович",
-            "login": "petrov_pp",
-            "password": "myp@ssw0rd",
-            "telegram": "@petrov_pp",
-            "email": "petrov@example.com",
-            "phone": "+79007654321",
-            "group_name": None,
-            "birth_date": None,
-            "access_level": "админ"
-        },
-        {
-            "fio": "Смирнова Дарья Сергеевна",
-            "login": "smirnova_ds",
-            "password": "dariapass",
-            "telegram": "@smirnova_ds",
-            "email": None,
-            "phone": None,
-            "group_name": "ФИТ-101",
-            "birth_date": "2000-07-22",
-            "access_level": "куратор"
+            'fio': 'Петрова Мария Сергеевна',
+            'login': 'petrova_ms',
+            'password': 'securepass',
+            'telegram': '@petrova',
+            'email': 'petrova@example.com',
+            'phone': '0987654321',
+            'group_name': 'Группа 2',
+            'birth_date': '1995-05-12',
+            'access_level': 'комисар',
+            'rating': 30,
+            'attendance': 16,
+            'achievements': '1) Отличник учёбы\n2) Лидер студенческого совета'
         }
     ]
-
-    for user in users:
+    for user in test_users:
         success, error = add_user(user)
-        if success:
-            print(f"Пользователь {user['fio']} успешно добавлен.")
+        if not success:
+            print(f"Ошибка при добавлении {user['login']}: {error}")
         else:
-            print(f"Ошибка при добавлении {user['fio']}: {error}")
+            print(f"Пользователь {user['login']} добавлен успешно.")
 
 # Запуск добавления тестовых пользователей
 if __name__ == "__main__":

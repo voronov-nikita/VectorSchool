@@ -30,21 +30,6 @@ def get_profile():
     
     return jsonify({"fio": user['fio'], "email": user['email']})
 
-@app.route('/profile', methods=['POST'])
-def post_profile():
-    data = request.json
-    login = data.get('login')
-    fio = data.get('fio')
-    email = data.get('email')
-
-    if not login or not fio:
-        return jsonify({"error": "Логин и ФИО обязательны"}), 400
-
-    success, error = update_profile(login, fio, email)
-    if success:
-        return jsonify({"message": "Профиль успешно обновлен"})
-    else:
-        return jsonify({"error": f"Ошибка обновления: {error}"}), 500
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -68,7 +53,41 @@ def login():
         "birth_date": user['birth_date'],
         "access_level": user['access_level'],
     })
-    
+
+@app.route('/profile/<login>', methods=['GET'])
+def profile(login):
+    user = get_user_by_login(login)
+    print(user)
+    if user is None:
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify({
+        'login': user['login'],
+        'fio': user['fio'],
+        'rating': user['rating'],
+        'telegram': user['telegram'],
+        'phone': user['phone'],
+        'group_name': user['group_name'],
+        'birth_date': user['birth_date'],
+        'access_level': user['access_level'],
+        'attendance': user['attendance'],
+        'achievements': user['achievements'].split('\n') if user['achievements'] else []
+    })
+
+@app.route('/profile/login', methods=['POST'])
+def post_profile():
+    data = request.json
+    login = data.get('login')
+    fio = data.get('fio')
+    email = data.get('email')
+
+    if not login or not fio:
+        return jsonify({"error": "Логин и ФИО обязательны"}), 400
+
+    success, error = update_profile(login, fio, email)
+    if success:
+        return jsonify({"message": "Профиль успешно обновлен"})
+    else:
+        return jsonify({"error": f"Ошибка обновления: {error}"}), 500
 
 
 if __name__ == '__main__':

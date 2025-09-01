@@ -4,7 +4,9 @@
 // 
 
 // URL сервера
-export const URL = 'http://127.0.0.1:5000'
+// export const URL = 'http://127.0.0.1:5000'
+export const URL = 'http://192.168.0.4:5000'
+
 
 // URL телеграмм бота
 export const TGURL = 'https://google.com'
