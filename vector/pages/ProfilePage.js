@@ -8,15 +8,19 @@ import {
     ActivityIndicator,
     Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 import { URL } from "../config";
 
-export const ProfileScreen = ({navigation, login}) => {
+export const ProfileScreen = ({navigation}) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
-    // const login = "ivanov_ii"; // фиксированный логин для теста
+    const [login, setLogin] = useState(null);
 
-    useEffect(() => {
+    useEffect(async () => {
+        const login = await AsyncStorage.getItem("authToken").then();
+        console.log(login);
         fetch(`${URL}/profile/${login}`)
             .then((res) => res.json())
             .then((data) => {

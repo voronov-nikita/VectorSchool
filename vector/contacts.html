@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Контакты — ПФО ВЕКТОР РТУ МИРЭА</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+            body {
+                background: #f6f7fa;
+                margin: 0;
+                font-family: "Segoe UI", Arial, sans-serif;
+                min-height: 100vh;
+                color: #21283e;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+            .contact-card {
+                margin-top: 48px;
+                background: #fff;
+                max-width: 360px;
+                width: 100%;
+                border-radius: 18px;
+                box-shadow: 0 4px 24px rgba(35, 52, 87, 0.09);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 32px 32px 28px 32px;
+            }
+            .logo {
+                width: 90px;
+                height: 90px;
+                margin-bottom: 16px;
+                object-fit: contain;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(60, 88, 152, 0.05);
+            }
+            h1 {
+                font-size: 2rem;
+                margin: 8px 0 24px 0;
+                font-weight: 600;
+                letter-spacing: 0.02em;
+                color: #232f57;
+                text-align: center;
+            }
+            .contact-info {
+                width: 100%;
+                margin-top: 8px;
+                margin-bottom: 24px;
+            }
+            .contact-info li {
+                margin-bottom: 12px;
+                font-size: 1rem;
+                line-height: 1.5;
+            }
+            .label {
+                font-weight: 600;
+                color: #535c84;
+            }
+            a {
+                color: #286bfa;
+                text-decoration: none;
+                transition: color 0.2s;
+            }
+            a:hover {
+                color: #1746a0;
+                text-decoration: underline;
+            }
+            .subtitle {
+                color: #21283e;
+                font-weight: 500;
+                font-size: 1.07rem;
+                margin-top: 12px;
+                text-align: center;
+            }
+            .footer {
+                margin-top: 48px;
+                color: #838fa6;
+                font-size: 0.95rem;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="contact-card">
+            <img
+                class="logo"
+                src="https://sun9-12.userapi.com/impg/z1mzG7MiX7w5NBIrj9gAV-8K.../logo.png?size=200x200&quality=96&sign=..."
+                alt="Логотип Вектор"
+            />
+            <h1>Контакты</h1>
+            <ul class="contact-info">
+                <li><span class="label">Командир:</span> Божко Георгий</li>
+                <li>
+                    <span class="label">ВКонтакте:</span>
+                    <a href="https://vk.com/vector_mirea" target="_blank"
+                        >vk.com/vector_mirea</a
+                    >
+                </li>
+                <li>
+                    <span class="label">Телефон:</span>
+                    <a href="tel:+79254966285">+7 (925) 496-62-85</a>
+                </li>
+                <li>
+                    <span class="label">Почта университета:</span>
+                    <a href="mailto:rector@mirea.ru">rector@mirea.ru</a>
+                </li>
+            </ul>
+            <div class="subtitle">
+                Для быстрой связи пишите в VK-группу или звоните по телефону.
+            </div>
+        </div>
+        <div class="footer">
+            © 2025 МИРЭА — Российский технологический университет <br />
+            Профориентационный отряд "Вектор"
+        </div>
+    </body>
+</html>

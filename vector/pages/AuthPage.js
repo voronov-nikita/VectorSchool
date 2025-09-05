@@ -1,6 +1,3 @@
-// Страница авторизации пользователей
-//
-
 import React, { useState, useEffect } from "react";
 import {
     View,
@@ -10,42 +7,55 @@ import {
     TextInput,
     TouchableOpacity,
     Dimensions,
+    Image,
+    KeyboardAvoidingView,
+    Platform, Linking
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// импорт констант из файла с конфигурациями
-import { URL } from "../config";
+// Путь к эмблеме (замените на ваш актуальный путь)
+import { logo, URL, contact_URL } from "../config";
 
-// Экспортируемый экран авторизации
 export const AuthScreen = ({ navigation }) => {
     const { width } = Dimensions.get("window");
-    // Ширина основного блока в зависимости от ширины экрана
-    const mainBlockWidth = width < 400 ? "85%" : "34%";
+    const mainBlockWidth = width < 420 ? "88%" : 400;
 
-    // Состояния для управления вводом и авторизацией
-    const [message, setMessage] = useState("ВВЕДИТЕ ЛОГИН И ПАРОЛЬ");
+    const [message, setMessage] = useState("");
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    // Проверка сохранённой сессии при монтировании
+    // Проверка наличия токена (или флага входа) при монтировании
     useEffect(() => {
-        const token = localStorage.getItem("authToken");
-        const expiresAt = localStorage.getItem("expiresAt");
-
-        if (token && expiresAt && Date.now() < expiresAt) {
-            setIsAuthenticated(true);
-            navigation.navigate("Home"); // Перенаправляем на главную страницу
-        } else {
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("expiresAt");
-        }
+        const checkAuthToken = async () => {
+            try {
+                const token = await AsyncStorage.getItem("authToken");
+                const expiresAt = await AsyncStorage.getItem("expiresAt");
+                if (token && expiresAt && Date.now() < Number(expiresAt)) {
+                    // Сброс стека (навсегда убрать логин из истории)
+                    navigation.reset({ index: 0, routes: [{ name: "Home" }] });
+                }
+            } catch (e) {
+                /**/
+            }
+            setLoading(false);
+        };
+        checkAuthToken();
     }, []);
 
-    // Авторизация пользователя
+    // перевод пользователя на страницу с контактами
+    const openContactPage = () => {
+        Linking.openURL(contact_URL).catch((err) =>
+            console.error("Ошибка при открытии URL:", err)
+        );
+    };
+
+    // Вход пользователя (пример, как возвращается токен)
     const sendDataToServerAuth = async () => {
         if (!login || !password) {
-            setError("Введите логин и пароль");
+            setMessage("Введите логин и пароль");
             return;
         }
         try {
@@ -55,137 +65,201 @@ export const AuthScreen = ({ navigation }) => {
                 body: JSON.stringify({ login, password }),
             });
             const data = await response.json();
-            if (response.ok) {
-                setMessage("Введите логин и пароль");
-				navigation.navigate("Home");
+            if (response.ok && data) {
+                setMessage("");
+                // Сохраняем флаг авторизации (лучше токен, если есть)
+                await AsyncStorage.setItem("authToken", login); // или data.token
+                // Сохраняем время жизни токена (например, 3 дня)
+                await AsyncStorage.setItem(
+                    "expiresAt",
+                    String(Date.now() + 3 * 24 * 3600 * 1000)
+                );
+                // Сброс всей истории навигации, чтобы нельзя было вернуться назад
+                navigation.reset({ index: 0, routes: [{ name: "Home" }] });
             } else {
-                setMessage("Поля логина и пароля не могут быть пустыми");
+                setMessage(data.error || "Ошибка авторизации");
             }
         } catch (e) {
-			console.log(e);
             setMessage("Ошибка соединения с сервером");
         }
     };
 
-    // Интерфейс страницы
+    if (loading) return null;
+
     return (
         <SafeAreaView style={styles.container}>
-            <View style={[styles.mainBlock, { width: mainBlockWidth }]}>
-                <Text style={styles.topText}>{message}</Text>
+            <KeyboardAvoidingView
+                style={{ flex: 1, width: "100%" }}
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
+            >
+                <View style={[styles.mainBlock, { width: mainBlockWidth }]}>
+                    <Image
+                        source={logo}
+                        resizeMode="contain"
+                        style={{
+                            width: 110,
+                            height: 110,
+                            alignSelf: "center",
+                            marginBottom: 15,
+                        }}
+                    />
+                    <Text style={styles.title}>Авторизация</Text>
+                    <Text style={styles.topText}>{message}</Text>
 
-                <View style={styles.blockTextInput}>
                     <TextInput
                         style={styles.textInput}
-                        placeholder="Логин или почта:"
-                        autoFocus={true}
-                        onChangeText={(login) => setLogin(login)}
+                        placeholder="Логин"
+                        keyboardType="login"
+                        autoCapitalize="none"
                         value={login}
+                        onChangeText={setLogin}
+                        returnKeyType="next"
                     />
+                    <View style={styles.passBlock}>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="Пароль"
+                            autoCapitalize="none"
+                            secureTextEntry={!showPassword}
+                            value={password}
+                            onChangeText={setPassword}
+                            returnKeyType="done"
+                        />
+                        <MaterialCommunityIcons
+                            name={showPassword ? "eye-off" : "eye"}
+                            size={28}
+                            color="#aaa"
+                            style={styles.icon}
+                            onPress={() => setShowPassword((v) => !v)}
+                        />
+                    </View>
+
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={sendDataToServerAuth}
+                    >
+                        <MaterialCommunityIcons
+                            name="lock"
+                            color="#fff"
+                            size={20}
+                            style={{ marginRight: 8 }}
+                        />
+                        <Text style={styles.buttonText}>Войти</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.recoverLinks}>
+                        <Text style={styles.recoverTitle}>
+                            Восстановление пароля:
+                        </Text>
+                        <TouchableOpacity>
+                            <Text style={styles.link}>для сотрудников</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={{ marginTop: -3 }}>
+                            <Text style={styles.link}>для учащихся</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-
-                <View style={styles.blockTextInput}>
-                    <TextInput
-                        secureTextEntry={!showPassword}
-                        style={styles.textInput}
-                        placeholder="Пароль:"
-                        onChangeText={(passw) => setPassword(passw)}
-                        value={password}
-                    />
-
-                    <MaterialCommunityIcons
-                        name={showPassword ? "eye-off" : "eye"}
-                        size={28}
-                        color="#aaa"
-                        style={styles.icon}
-                        onPress={() => setShowPassword(!showPassword)}
-                    />
+                <View style={styles.footer}>
+                    <TouchableOpacity onPress={openContactPage}>
+                        <Text style={styles.footerLink}>
+                            <MaterialCommunityIcons
+                                name="shield"
+                                size={18}
+                                color="#1a488e"
+                            />{" "}
+                            Техническая поддержка
+                        </Text>
+                    </TouchableOpacity>
+                    <Text style={styles.copyright}>
+                        © 2025 МИРЭА – Российский технологический университет
+                        {"\n"}Профориентационный отряд "Вектор"{"\n"}
+                    </Text>
                 </View>
-
-                <TouchableOpacity
-                    style={styles.button.active}
-                    onPressOut={sendDataToServerAuth}
-                >
-                    <Text style={styles.buttonText}>Войти</Text>
-                </TouchableOpacity>
-            </View>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };
 
-// Конструктор стилей для экрана авторизации
 const styles = StyleSheet.create({
     container: {
-        alignItems: "center",
-        alignContent: "center",
-        justifyContent: "center",
         flex: 1,
-        backgroundColor: "#21292c",
+        backgroundColor: "#f3f5f7",
+        alignItems: "center",
+        justifyContent: "center",
     },
-
     mainBlock: {
-        flex: 1,
-        alignContent: "center",
-        justifyContent: "center",
+        alignSelf: "center",
+        marginTop: "auto",
+        marginBottom: "auto",
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 22,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOpacity: 0.07,
+        shadowRadius: 8,
     },
-
-    blockTextInput: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#f3f3f3",
-
-        borderWidth: 0.5,
-    },
-
-    textInput: {
-        justifyContent: "center",
-        margin: "auto",
-        padding: "7%",
-        backgroundColor: "#f3f3f3",
-        color: "black",
-        width: "100%",
-
-        fontFamily: "Arial",
-    },
-
-    icon: {
-        marginRight: "5%",
-    },
-
-    button: {
-        active: {
-            width: "100%",
-            height: "10%",
-            backgroundColor: "#007bb7",
-        },
-
-        inactive: {
-            width: "100%",
-            height: "10%",
-            backgroundColor: "#374e59",
-        },
-    },
-
-    buttonText: {
-        display: "flex",
-        justifyContent: "center",
+    title: {
         textAlign: "center",
         fontFamily: "Arial",
         fontWeight: "bold",
-        margin: "auto",
-
-        color: "#e2e8e9",
-        fontSize: "1.25rem",
+        fontSize: 26,
+        marginVertical: 7,
+        color: "#111d2b",
     },
-
     topText: {
         textAlign: "center",
-        justifyContent: "center",
-
-        fontSize: "1.05rem",
-        color: "#e2e8e9",
-        margin: "5%",
-        padding: "auto",
+        color: "#3b5c6e",
+        marginTop: 2,
+        marginBottom: 15,
+        fontSize: 14,
+        minHeight: 14,
+    },
+    textInput: {
+        backgroundColor: "#f6f8fb",
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#dde0ea",
+        padding: 15,
+        marginBottom: 16,
+        fontSize: 16,
         fontFamily: "Arial",
+        color: "#222",
+        flex: 1,
+    },
+    passBlock: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+    icon: { position: "absolute", right: 10, top: 14 },
+    button: {
+        backgroundColor: "#2176ff",
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 14,
+        borderRadius: 8,
+        justifyContent: "center",
+        marginTop: 6,
+        marginBottom: 3,
+    },
+    buttonText: { color: "#fff", fontWeight: "bold", fontSize: 17 },
+    recoverLinks: { marginTop: 20, alignItems: "center" },
+    recoverTitle: { color: "#6d7f97", marginBottom: 6, fontSize: 15 },
+    link: {
+        color: "#256adf",
+        textDecorationLine: "underline",
+        fontSize: 15,
+        marginBottom: 2,
+    },
+    footer: { alignItems: "center", marginTop: 30 },
+    footerLink: {
+        color: "#1a488e",
+        fontWeight: "bold",
+        fontSize: 15,
+        marginTop: 16,
+        textDecorationLine: "underline",
+    },
+    copyright: {
+        textAlign: "center",
+        color: "#888",
+        fontSize: 13,
+        marginTop: 8,
     },
 });
