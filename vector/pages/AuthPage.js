@@ -9,7 +9,8 @@ import {
     Dimensions,
     Image,
     KeyboardAvoidingView,
-    Platform, Linking
+    Platform,
+    Linking,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -149,14 +150,9 @@ export const AuthScreen = ({ navigation }) => {
 
                     <View style={styles.recoverLinks}>
                         <Text style={styles.recoverTitle}>
-                            Восстановление пароля:
+                            Восстановление пароля:{"\n"}Для восстановления
+                            пароля обратитесь к администратору
                         </Text>
-                        <TouchableOpacity>
-                            <Text style={styles.link}>для сотрудников</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={{ marginTop: -3 }}>
-                            <Text style={styles.link}>для учащихся</Text>
-                        </TouchableOpacity>
                     </View>
                 </View>
                 <View style={styles.footer}>
@@ -241,7 +237,12 @@ const styles = StyleSheet.create({
     },
     buttonText: { color: "#fff", fontWeight: "bold", fontSize: 17 },
     recoverLinks: { marginTop: 20, alignItems: "center" },
-    recoverTitle: { color: "#6d7f97", marginBottom: 6, fontSize: 15 },
+    recoverTitle: {
+        textAlign: "center",
+        color: "#6d7f97",
+        marginBottom: 6,
+        fontSize: 15,
+    },
     link: {
         color: "#256adf",
         textDecorationLine: "underline",
