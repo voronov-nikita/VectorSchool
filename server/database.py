@@ -75,6 +75,81 @@ def get_profile_by_login(login):
     db.close()
     return user
 
+# получение списка именно бойцов отряда (без кураторов, комисаров и прочих)
+def get_fighters(sort='fio', search=None):
+    db = get_db()
+    base_query = """
+        SELECT login, fio, rating, attendance, achievements
+        FROM users
+        WHERE access_level = 'боец'
+    """
+    args = []
+    if sort == 'fio' and search:
+        parts = search.strip().split()
+        # Ограничиваем до 3 для ФИО
+        parts = parts[:3]
+        for part in parts:
+            base_query += " AND fio LIKE ?"
+            args.append(f"{part}%")
+        base_query += " ORDER BY fio ASC"
+    else:
+        if search:
+            base_query += " AND fio LIKE ?"
+            args.append(f"%{search}%")
+        if sort == "rating":
+            base_query += " ORDER BY rating DESC"
+        elif sort == "attendance":
+            base_query += " ORDER BY attendance DESC"
+        else:
+            base_query += " ORDER BY fio ASC"
+    users = db.execute(base_query, args).fetchall()
+    db.close()
+    return [dict(u) for u in users]
+
+
+# получение топ 10 лучших бойцов отряда
+def group_top_users(users, max_line=3, top_n=10):
+    ranked = []
+    current_rank = 1
+    current_score = None
+    line = []
+    for u in users:
+        if current_score is None or u['rating'] != current_score:
+            if line:
+                ranked.append({'rank': current_rank, 'users': line})
+            line = []
+            current_score = u['rating']
+            current_rank = len(ranked) + 1
+        line.append(u)
+        if len(line) == max_line:
+            ranked.append({'rank': current_rank, 'users': line})
+            line = []
+            current_rank = len(ranked) + 1
+    if line:
+        ranked.append({'rank': current_rank, 'users': line})
+    return ranked[:top_n]
+
+def group_top_users(users, max_line=3, top_n=10):
+    ranked = []
+    current_rank = 1
+    current_score = None
+    line = []
+    for u in users:
+        if current_score is None or u['rating'] != current_score:
+            if line:
+                ranked.append({'rank': current_rank, 'users': line})
+            line = []
+            current_score = u['rating']
+            current_rank = len(ranked) + 1
+        line.append(u)
+        if len(line) == max_line:
+            ranked.append({'rank': current_rank, 'users': line})
+            line = []
+            current_rank = len(ranked) + 1
+    if line:
+        ranked.append({'rank': current_rank, 'users': line})
+    return ranked[:top_n]
+
 
 if __name__=="__main__":
     init_db()

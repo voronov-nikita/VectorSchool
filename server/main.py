@@ -73,22 +73,34 @@ def profile(login):
         'achievements': user['achievements'].split('\n') if user['achievements'] else []
     })
 
-@app.route('/profile/login', methods=['POST'])
-def post_profile():
-    data = request.json
-    login = data.get('login')
-    fio = data.get('fio')
-    email = data.get('email')
+# @app.route('/profile/login', methods=['POST'])
+# def post_profile():
+#     data = request.json
+#     login = data.get('login')
+#     fio = data.get('fio')
+#     email = data.get('email')
 
-    if not login or not fio:
-        return jsonify({"error": "Логин и ФИО обязательны"}), 400
+#     if not login or not fio:
+#         return jsonify({"error": "Логин и ФИО обязательны"}), 400
 
-    success, error = update_profile(login, fio, email)
-    if success:
-        return jsonify({"message": "Профиль успешно обновлен"})
-    else:
-        return jsonify({"error": f"Ошибка обновления: {error}"}), 500
+#     success, error = update_profile(login, fio, email)
+#     if success:
+#         return jsonify({"message": "Профиль успешно обновлен"})
+#     else:
+#         return jsonify({"error": f"Ошибка обновления: {error}"}), 500
+@app.route('/users', methods=['GET'])
+def fighters_api():
+    search = request.args.get('search', '')
+    sort = request.args.get('sort', 'fio')
+    fighters = get_fighters(sort=sort, search=search)
+    fighters.__getindex__
+    return jsonify({'fighters': fighters})
 
+@app.route('/rating', methods=['GET'])
+def rating_api():
+    fighters = get_fighters(sort='rating')
+    top_10 = group_top_users(fighters, max_line=3, top_n=10)
+    return jsonify({'top_10': top_10})
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True)
