@@ -67,6 +67,7 @@ export const AuthScreen = ({ navigation }) => {
             });
             const data = await response.json();
             if (response.ok && data) {
+                console.log(data);
                 setMessage("");
                 // Сохраняем флаг авторизации (лучше токен, если есть)
                 await AsyncStorage.setItem("authToken", login); // или data.token
@@ -75,6 +76,7 @@ export const AuthScreen = ({ navigation }) => {
                     "expiresAt",
                     String(Date.now() + 3 * 24 * 3600 * 1000)
                 );
+                await AsyncStorage.setItem("access_level", data.access_login)
                 // Сброс всей истории навигации, чтобы нельзя было вернуться назад
                 navigation.reset({ index: 0, routes: [{ name: "Home" }] });
             } else {

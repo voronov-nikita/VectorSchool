@@ -165,6 +165,30 @@ def add_test_users():
         else:
             print(f"Пользователь {user['login']} добавлен успешно.")
 
+def add_admin():
+  admin = {
+    "fio": "Администратор",
+    "login": "admin",
+    "password": "96a9HJkT!",
+    "telegram": "-",
+    "email": "-",
+    "phone": "00000000",
+    "group_name": "Группа 1",
+    "birth_date": "2000-03-25",
+    "access_level": "админ",
+    "rating": 0,
+    "attendance": 0,
+    "achievements": "**"
+  }
+  
+  success, error = add_user(admin)
+  if not success:
+      print(f"Ошибка при добавлении {admin['login']}: {error}")
+  else:
+      print(f"Пользователь {admin['login']} добавлен успешно.")
+  return 
+
 # Запуск добавления тестовых пользователей
 if __name__ == "__main__":
-    add_test_users()
+    # add_test_users()
+    add_admin()

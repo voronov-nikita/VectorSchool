@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { ScrollView } from "react-native-web";
@@ -6,25 +7,33 @@ const services = [
     { label: "Календарь мероприятий", color: "#7A5FF6", path: "Events" },
     { label: "Инструкция", color: "#FFC142", path: "/instruction" },
     { label: "Мой профиль", color: "#5CD2D0", path: "Profile" },
+    { label: "Школа Вектора", color: "#1b4cffff", path: "School" }
+        ? AsyncStorage.getItem("access_level") == "админ"
+        : null,
+    { label: "Получение ПГАС", color: "#b52a12ff", path: "School" },
 ];
 
-export const HomeScreen = ({navigation}) => {
+export const HomeScreen = ({ navigation }) => {
+    console.log(AsyncStorage.getItem("access_level"));
     return (
         <ScrollView style={styles.container}>
             <View style={styles.grid}>
-                {services.map((s, idx) => (
-                    <TouchableOpacity
-                        key={idx}
-                        style={[styles.card, { backgroundColor: s.color }]}
-                        onPress={() => navigation.navigate(s.path)}
-                    >
-                        <Text style={styles.cardText}>{s.label}</Text>
-                    </TouchableOpacity>
-                ))}
+                {services.map((s, idx) =>
+                // Проверяем, что s не равен null
+                    s !== null ? ( 
+                        <TouchableOpacity
+                            key={idx}
+                            style={[styles.card, { backgroundColor: s.color }]}
+                            onPress={() => navigation.navigate(s.path)}
+                        >
+                            <Text style={styles.cardText}>{s.label}</Text>
+                        </TouchableOpacity>
+                    ) : null
+                )}
             </View>
         </ScrollView>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {

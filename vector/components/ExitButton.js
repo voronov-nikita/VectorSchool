@@ -13,6 +13,7 @@ export const ExitButton = ({ navigation }) => {
         AsyncStorage.removeItem("authToken");
         AsyncStorage.removeItem("expiresAt");
         AsyncStorage.removeItem("UserId");
+        AsyncStorage.removeItem("access_level");
         navigation.reset({ index: 0, routes: [{ name: "Auth" }] });
     }, []);
 
