@@ -2,7 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 
 // путь к файлу иллюстрации
-const LazyDog = require("./lazy-dog.png"); 
+// const LazyDog = require(""); 
+const LazyDog = "";
 
 export const PGASScreen = () => {
     return (
@@ -13,8 +14,8 @@ export const PGASScreen = () => {
                     style={styles.dog}
                     resizeMode="contain"
                 />
-                <Text style={styles.title}>Выходной</Text>
-                <Text style={styles.subtitle}>Пар в этот день нет!</Text>
+                <Text style={styles.title}>Пока здесь пусто</Text>
+                <Text style={styles.subtitle}>Разраб леньтяй, фитча пока не реализована</Text>
             </View>
         </View>
     );

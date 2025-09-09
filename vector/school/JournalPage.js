@@ -4,7 +4,7 @@ import axios from "axios";
 
 import { URL } from "../config";
 
-export default function App() {
+export const JournalScreen = () => {
     const [groups, setGroups] = useState([]);
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [journal, setJournal] = useState({
@@ -12,7 +12,7 @@ export default function App() {
         lessons: [],
         attendance: [],
     });
-    const [userRole, setUserRole] = useState("user"); // 'admin', 'curator', 'user'
+    const [userRole, setUserRole] = useState("student"); // 'admin', 'curator', 'user'
 
     useEffect(() => {
         axios.get(`${URL}/groups`).then((res) => setGroups(res.data));
@@ -27,7 +27,7 @@ export default function App() {
     }, [selectedGroup]);
 
     const handleChangeStatus = (student_id, lesson_id, currentStatus) => {
-        if (userRole !== "admin" && userRole !== "curator") return;
+        if (userRole !== "admin" && userRole !== "curator" && userRole !== "student") return;
         const newStatus = currentStatus === "Н" ? "+" : "Н";
         axios
             .post(`${URL}/attendance`, {

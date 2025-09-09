@@ -33,14 +33,14 @@ export const ProfileScreen = ({navigation}) => {
     }, []);
 
     const handleLogout = () => {
-        navigation.navigate("Exit");
+        navigation.navigate('Exit');
     };
 
     if (loading) {
         return (
             <ActivityIndicator
                 size="large"
-                color="#337AFF"
+                color="#5833ffff"
                 style={{ flex: 1 }}
             />
         );
@@ -99,7 +99,7 @@ export const ProfileScreen = ({navigation}) => {
                 <Button
                     title="Выйти из системы"
                     onPress={handleLogout}
-                    color="#337AFF"
+                    color="#ff3333ff"
                 />
             </View>
         </ScrollView>

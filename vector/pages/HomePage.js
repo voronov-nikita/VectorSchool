@@ -4,32 +4,33 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { ScrollView } from "react-native-web";
 
 const services = [
-    { label: "Календарь мероприятий", color: "#7A5FF6", path: "Events" },
-    { label: "Инструкция", color: "#FFC142", path: "/instruction" },
-    { label: "Мой профиль", color: "#5CD2D0", path: "Profile" },
-    { label: "Школа Вектора", color: "#1b4cffff", path: "School" }
-        ? AsyncStorage.getItem("access_level") == "админ"
-        : null,
-    { label: "Получение ПГАС", color: "#b52a12ff", path: "School" },
+    { access_level: '*', label: "Календарь мероприятий", color: "#7A5FF6", path: "Events" },
+    { access_level: '*', label: "Инструкция", color: "#FFC142", path: "/instruction" },
+    { access_level: '*', label: "Мой профиль", color: "#5CD2D0", path: "Profile" },
+    { access_level: 'admin', label: "Школа Вектора", color: "#1b4cffff", path: "School" },
+    { access_level: '0', label: "Получение ПГАС", color: "#b52a12ff", path: "PGAS" },
 ];
 
 export const HomeScreen = ({ navigation }) => {
-    console.log(AsyncStorage.getItem("access_level"));
+    console.log(AsyncStorage.getItem("access_level").then());
     return (
         <ScrollView style={styles.container}>
             <View style={styles.grid}>
-                {services.map((s, idx) =>
-                // Проверяем, что s не равен null
-                    s !== null ? ( 
-                        <TouchableOpacity
-                            key={idx}
-                            style={[styles.card, { backgroundColor: s.color }]}
-                            onPress={() => navigation.navigate(s.path)}
-                        >
-                            <Text style={styles.cardText}>{s.label}</Text>
-                        </TouchableOpacity>
-                    ) : null
-                )}
+                {services.length > 0 &&
+                    services
+                        .filter((s) => s !== null)
+                        .map((s, idx) => (
+                            <TouchableOpacity
+                                key={idx}
+                                style={[
+                                    styles.card,
+                                    { backgroundColor: s.color },
+                                ]}
+                                onPress={() => navigation.navigate(s.path)}
+                            >
+                                <Text style={styles.cardText}>{s.label}</Text>
+                            </TouchableOpacity>
+                        ))}
             </View>
         </ScrollView>
     );

@@ -8,11 +8,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 
 // Импорт страниц
+import { PGASScreen } from './pages/PGAS';
 import { AuthScreen } from './pages/AuthPage';
 import { HomeScreen } from './pages/HomePage';
 import { UsersScreen } from './pages/UsersPage';
 import {ProfileScreen} from './pages/ProfilePage';
 import { EventsScreen } from './pages/EventsPage';
+import {JournalScreen} from './school/JournalPage';
 import { StatisticsScreen } from './pages/StatisticPage';
 
 import { ExitButton } from './components/ExitButton';
@@ -46,6 +48,11 @@ export default function App() {
 					component={HomeScreen}
 				/>
 				<Drawer.Screen
+					name="School"
+					options={{headerShown: false, drawerItemStyle: { display: 'none' }}}
+					component={JournalScreen}
+				/>
+				<Drawer.Screen
 					name="Profile"
 					options={{ title: 'Профиль', headerTitleAlign: 'center' }}
 					component={ProfileScreen}
@@ -60,11 +67,17 @@ export default function App() {
 					options={{ title: 'Статистика', headerTitleAlign: 'center' }}
 					component={StatisticsScreen}
 				/>
-        <Drawer.Screen
+        <		Drawer.Screen
 					name="Events"
 					options={{ title: 'Мероприятия', headerTitleAlign: 'center' }}
 					component={EventsScreen}
 				/>
+				<Drawer.Screen
+					name="PGAS"
+					options={{ title: 'ПГАС', headerTitleAlign: 'center' }}
+					component={PGASScreen}
+				/>
+				
 				<Drawer.Screen name="Exit" options={{ title: 'Выход' }} component={ExitButton} />
 			</Drawer.Navigator>
 		</NavigationContainer>
