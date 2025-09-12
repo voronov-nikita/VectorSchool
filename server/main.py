@@ -6,10 +6,11 @@ app = Flask(__name__)
 CORS(app)
 
 
+
 @app.before_request
 def before_request():
     get_db()
-
+    
 @app.teardown_appcontext
 def teardown_db(exception):
     close_db()
@@ -85,7 +86,7 @@ def rating_api():
     return jsonify({'top_10': top_10})
 
 # Дополнительные эндпоинты для групп, студентов, занятий и посещаемости
-
+# Все это для школы Вектора
 @app.route('/groups', methods=['GET'])
 def api_get_groups():
     return jsonify(get_groups())
@@ -93,15 +94,15 @@ def api_get_groups():
 @app.route('/groups', methods=['POST'])
 def api_add_group():
     data = request.get_json()
-    ok, err = add_group(data['name'])
+    name = data.get('name')
+    curator = data.get('curator')
+    if not name or not curator:
+        return jsonify({'error': 'Укажите имя группы и куратора'}), 400
+    ok, err = add_group(name, curator)
     if not ok:
         return jsonify({'error': err}), 400
     return jsonify({'result': 'Group added'})
 
-@app.route('/groups/<int:group_id>', methods=['DELETE'])
-def api_delete_group(group_id):
-    delete_group(group_id)
-    return jsonify({'result': 'Group deleted'})
 
 @app.route('/students', methods=['GET'])
 def api_get_students():
@@ -112,13 +113,17 @@ def api_get_students():
 @app.route('/students', methods=['POST'])
 def api_add_student():
     data = request.get_json()
-    add_student(data['fio'], data['group_id'])
+    fio = data.get('fio')
+    group_id = data.get('group_id')
+    birth_date = data.get('birth_date', '')
+    telegram_id = data.get('telegram_id', '')
+
+    if not fio or not group_id:
+        return jsonify({'error': 'ФИО и ID группы обязательны'}), 400
+
+    add_student(fio, group_id, birth_date, telegram_id)
     return jsonify({'result': 'Student added'})
 
-@app.route('/students/<int:student_id>', methods=['DELETE'])
-def api_delete_student(student_id):
-    delete_student(student_id)
-    return jsonify({'result': 'Student deleted'})
 
 @app.route('/lessons', methods=['GET'])
 def api_get_lessons():
@@ -132,11 +137,6 @@ def api_add_lesson():
     add_lesson(data['group_id'], data['date'], data['lesson_type'])
     return jsonify({'result': 'Lesson added'})
 
-@app.route('/lessons/<int:lesson_id>', methods=['DELETE'])
-def api_delete_lesson(lesson_id):
-    delete_lesson(lesson_id)
-    return jsonify({'result': 'Lesson deleted'})
-
 @app.route('/attendance', methods=['POST'])
 def api_set_attendance():
     data = request.get_json()
@@ -148,6 +148,12 @@ def api_get_journal():
     group_id = request.args.get('group_id')
     journal = get_group_journal(group_id)
     return jsonify(journal)
+
+@app.route('/lessons/<int:lesson_id>', methods=['DELETE'])
+def api_delete_lesson(lesson_id):
+    delete_lesson(lesson_id)
+    return jsonify({'result': 'Lesson deleted'})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)

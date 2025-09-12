@@ -2,6 +2,7 @@ import sqlite3
 from flask import g
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 # DATABASE = 'journal.db'
 DATABASE = "users.db"
 
@@ -40,7 +41,8 @@ def init_db():
     db.execute('''
         CREATE TABLE IF NOT EXISTS groups (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE
+            name TEXT NOT NULL UNIQUE,
+            curator TEXT
         )
     ''')
     db.execute('''
@@ -48,6 +50,8 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             fio TEXT NOT NULL,
             group_id INTEGER,
+            birth_date TEXT,
+            telegram_id TEXT,
             FOREIGN KEY(group_id) REFERENCES groups(id)
         )
     ''')
@@ -157,14 +161,15 @@ def group_top_users(users, max_line=3, top_n=10):
 
 # ---- Groups ----
 
-def add_group(name):
+def add_group(name, curator):
     db = get_db()
     try:
-        db.execute("INSERT INTO groups (name) VALUES (?)", (name,))
+        db.execute("INSERT INTO groups (name, curator) VALUES (?, ?)", (name, curator))
         db.commit()
         return True, None
     except sqlite3.IntegrityError as e:
         return False, f"Группа уже существует: {str(e)}"
+
 
 def get_groups():
     db = get_db()
@@ -178,10 +183,14 @@ def delete_group(group_id):
 
 # ---- Students ----
 
-def add_student(fio, group_id):
+def add_student(fio, group_id, birth_date='', telegram_id=''):
     db = get_db()
-    db.execute("INSERT INTO students (fio, group_id) VALUES (?, ?)", (fio, group_id))
+    db.execute(
+        "INSERT INTO students (fio, group_id, birth_date, telegram_id) VALUES (?, ?, ?, ?)",
+        (fio, group_id, birth_date, telegram_id)
+    )
     db.commit()
+
 
 def get_students(group_id):
     db = get_db()

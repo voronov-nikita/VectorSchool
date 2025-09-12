@@ -7,12 +7,11 @@ const services = [
     { access_level: '*', label: "Календарь мероприятий", color: "#7A5FF6", path: "Events" },
     { access_level: '*', label: "Инструкция", color: "#FFC142", path: "/instruction" },
     { access_level: '*', label: "Мой профиль", color: "#5CD2D0", path: "Profile" },
-    { access_level: 'admin', label: "Школа Вектора", color: "#1b4cffff", path: "School" },
+    { access_level: 'admin', label: "Школа Вектора", color: "#1b4cffff", path: "SchoolMain" },
     { access_level: '0', label: "Получение ПГАС", color: "#b52a12ff", path: "PGAS" },
 ];
 
 export const HomeScreen = ({ navigation }) => {
-    console.log(AsyncStorage.getItem("access_level").then());
     return (
         <ScrollView style={styles.container}>
             <View style={styles.grid}>
