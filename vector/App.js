@@ -12,9 +12,11 @@ import { PGASScreen } from "./pages/PGAS";
 import { AuthScreen } from "./pages/AuthPage";
 import { HomeScreen } from "./pages/HomePage";
 import { UsersScreen } from "./pages/UsersPage";
-import { ProfileScreen } from "./pages/ProfilePage";
 import { EventsScreen } from "./pages/EventsPage";
+import { ProfileScreen } from "./pages/ProfilePage";
+import { ContactsScreen } from "./pages/ContactsPage";
 import { StatisticsScreen } from "./pages/StatisticPage";
+import { InstructionScreen } from "./pages/InstructionPage";
 
 import { ExitButton } from "./components/ExitButton";
 import { BackButton } from "./components/ButtonBack";
@@ -60,6 +62,16 @@ export default function App() {
                     name="Home"
                     options={{ title: "Главная", headerTitleAlign: "center" }}
                     component={HomeScreen}
+                />
+                <Drawer.Screen
+                    name="Instruction"
+                    options={{ title: "Инструкци и правила пользования", headerTitleAlign: "center" }}
+                    component={InstructionScreen}
+                />
+                <Drawer.Screen
+                    name="Contacts"
+                    options={{ title: "Контакты", headerTitleAlign: "center" }}
+                    component={ContactsScreen}
                 />
                 <Drawer.Screen
                     name="SchoolMain"

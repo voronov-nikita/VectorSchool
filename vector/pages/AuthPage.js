@@ -64,6 +64,8 @@ export const AuthScreen = ({ navigation }) => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ login, password }),
+                // support_credentials: true,
+                // credentials: 'include'
             });
             const data = await response.json();
             if (response.ok && data) {
