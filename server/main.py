@@ -2,26 +2,26 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from database import *
 
-app = Flask(__name__)
-CORS(app)
+application = Flask(__name__)
+CORS(application)
 
 
 
-@app.before_request
+@application.before_request
 def before_request():
     get_db()
     
-@app.teardown_appcontext
+@application.teardown_appcontext
 def teardown_db(exception):
     close_db()
 
 # Инициализация базы при запуске
-with app.app_context():
+with application.app_context():
     init_db()
 
 # ----- API ENDPOINTS -----
 
-@app.route('/profile', methods=['GET'])
+@application.route('/profile', methods=['GET'])
 def get_profile():
     login = request.args.get('login')
     if not login:
@@ -31,7 +31,7 @@ def get_profile():
         return jsonify({"error": "Пользователь не найден"}), 404
     return jsonify({"fio": user['fio'], "email": user['email']})
 
-@app.route('/login', methods=['POST'])
+@application.route('/login', methods=['POST'])
 def login():
     data = request.json
     login_ = data.get('login')
@@ -54,7 +54,7 @@ def login():
         "access_level": user['access_level'],
     })
 
-@app.route('/profile/<login>', methods=['GET'])
+@application.route('/profile/<login>', methods=['GET'])
 def profile(login):
     user = get_user_by_login(login)
     if user is None:
@@ -72,14 +72,14 @@ def profile(login):
         'achievements': user['achievements'].split('\n') if user['achievements'] else []
     })
 
-@app.route('/users', methods=['GET'])
+@application.route('/users', methods=['GET'])
 def fighters_api():
     search = request.args.get('search', '')
     sort = request.args.get('sort', 'fio')
     fighters = get_fighters(sort=sort, search=search)
     return jsonify({'fighters': fighters})
 
-@app.route('/rating', methods=['GET'])
+@application.route('/rating', methods=['GET'])
 def rating_api():
     fighters = get_fighters(sort='rating')
     top_10 = group_top_users(fighters, max_line=3, top_n=10)
@@ -87,11 +87,11 @@ def rating_api():
 
 # Дополнительные эндпоинты для групп, студентов, занятий и посещаемости
 # Все это для школы Вектора
-@app.route('/groups', methods=['GET'])
+@application.route('/groups', methods=['GET'])
 def api_get_groups():
     return jsonify(get_groups())
 
-@app.route('/groups', methods=['POST'])
+@application.route('/groups', methods=['POST'])
 def api_add_group():
     data = request.get_json()
     name = data.get('name')
@@ -104,13 +104,13 @@ def api_add_group():
     return jsonify({'result': 'Group added'})
 
 
-@app.route('/students', methods=['GET'])
+@application.route('/students', methods=['GET'])
 def api_get_students():
     group_id = request.args.get('group_id')
     students = get_students(group_id)
     return jsonify(students)
 
-@app.route('/students', methods=['POST'])
+@application.route('/students', methods=['POST'])
 def api_add_student():
     data = request.get_json()
     fio = data.get('fio')
@@ -125,35 +125,35 @@ def api_add_student():
     return jsonify({'result': 'Student added'})
 
 
-@app.route('/lessons', methods=['GET'])
+@application.route('/lessons', methods=['GET'])
 def api_get_lessons():
     group_id = request.args.get('group_id')
     lessons = get_lessons(group_id)
     return jsonify(lessons)
 
-@app.route('/lessons', methods=['POST'])
+@application.route('/lessons', methods=['POST'])
 def api_add_lesson():
     data = request.get_json()
     add_lesson(data['group_id'], data['date'], data['lesson_type'])
     return jsonify({'result': 'Lesson added'})
 
-@app.route('/attendance', methods=['POST'])
+@application.route('/attendance', methods=['POST'])
 def api_set_attendance():
     data = request.get_json()
     set_attendance(data['student_id'], data['lesson_id'], data['status'])
     return jsonify({'result': 'Attendance updated'})
 
-@app.route('/journal', methods=['GET'])
+@application.route('/journal', methods=['GET'])
 def api_get_journal():
     group_id = request.args.get('group_id')
     journal = get_group_journal(group_id)
     return jsonify(journal)
 
-@app.route('/lessons/<int:lesson_id>', methods=['DELETE'])
+@application.route('/lessons/<int:lesson_id>', methods=['DELETE'])
 def api_delete_lesson(lesson_id):
     delete_lesson(lesson_id)
     return jsonify({'result': 'Lesson deleted'})
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    application.run(host='0.0.0.0', debug=True)
