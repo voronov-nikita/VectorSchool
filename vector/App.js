@@ -11,6 +11,7 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import { PGASScreen } from "./pages/PGAS";
 import { AuthScreen } from "./pages/AuthPage";
 import { HomeScreen } from "./pages/HomePage";
+import { NewsScreen } from "./pages/NewsPage";
 import { UsersScreen } from "./pages/UsersPage";
 import { EventsScreen } from "./pages/EventsPage";
 import { ProfileScreen } from "./pages/ProfilePage";
@@ -18,11 +19,19 @@ import { ContactsScreen } from "./pages/ContactsPage";
 import { StatisticsScreen } from "./pages/StatisticPage";
 import { InstructionScreen } from "./pages/InstructionPage";
 
+// компоненты для нормальной работы
 import { ExitButton } from "./components/ExitButton";
 import { BackButton } from "./components/ButtonBack";
+import { ModalProvider } from "./components/InfoModal";
 
-import { SchoolMainScreen } from "./school/SchoolMainPage";
+// Все блоки, которые использует школа Вектора
 import { SchoolOneGroupScreen } from "./school/SchoolOneGroupPage";
+import { SchoolMainScreen } from "./school/SchoolMainPage";
+import { CreateTestScreen } from "./school/CreateTestPage";
+import { SchoolGroupsScreen } from "./school/GroupsPage";
+import { HomeworkScreen } from "./school/HomeworkPage";
+import { TakeTestScreen } from "./school/TakeTestPage";
+import { TestsScreen } from "./school/TestsPage";
 
 // Создаем конфигуратор Drawer и Stack
 const Drawer = createDrawerNavigator();
@@ -31,98 +40,170 @@ const Stack = createStackNavigator();
 // Главная функция приложения
 export default function App() {
     return (
-        <NavigationContainer>
-            <Drawer.Navigator
-                initialRouteName="Auth"
-                screenOptions={{
-                    drawerStyle: {
-                        backgroundColor: "#f0f0f0",
-                        width: 250,
-                    },
-                }}
-            >
-                <Drawer.Screen
-                    name="Auth"
-                    options={{
-                        headerShown: false,
-                        drawerItemStyle: { display: "none" },
+        <ModalProvider>
+            <NavigationContainer>
+                <Drawer.Navigator
+                    initialRouteName="Auth"
+                    screenOptions={{
+                        drawerStyle: {
+                            backgroundColor: "#f0f0f0",
+                            width: 250,
+                        },
                     }}
-                    component={AuthScreen}
-                />
-                <Drawer.Screen
-                    name="SchoolOneGroup"
-                    options={{
-                        headerTitle: "Список группы",
-                        headerLeft: () => <BackButton />,
-                        drawerItemStyle: { display: "none" },
-                    }}
-                    component={SchoolOneGroupScreen}
-                />
-                <Drawer.Screen
-                    name="Home"
-                    options={{ title: "Главная", headerTitleAlign: "center" }}
-                    component={HomeScreen}
-                />
-                <Drawer.Screen
-                    name="Instruction"
-                    options={{ title: "Инструкци и правила пользования", headerTitleAlign: "center" }}
-                    component={InstructionScreen}
-                />
-                <Drawer.Screen
-                    name="Contacts"
-                    options={{ title: "Контакты", headerTitleAlign: "center" }}
-                    component={ContactsScreen}
-                />
-                <Drawer.Screen
-                    name="SchoolMain"
-                    options={{
-                        headerTitle: "Группы",
-                        headerLeft: () => <BackButton />,
-                        drawerItemStyle: { display: "none" },
-                    }}
-                    component={SchoolMainScreen}
-                />
-                <Drawer.Screen
-                    name="Profile"
-                    options={{ title: "Профиль", headerTitleAlign: "center" }}
-                    component={ProfileScreen}
-                />
-                <Drawer.Screen
-                    name="Users"
-                    options={{
-                        title: "Список бойцов",
-                        headerTitleAlign: "center",
-                    }}
-                    component={UsersScreen}
-                />
-                <Drawer.Screen
-                    name="Statistics"
-                    options={{
-                        title: "Статистика",
-                        headerTitleAlign: "center",
-                    }}
-                    component={StatisticsScreen}
-                />
-                <Drawer.Screen
-                    name="Events"
-                    options={{
-                        title: "Мероприятия",
-                        headerTitleAlign: "center",
-                    }}
-                    component={EventsScreen}
-                />
-                <Drawer.Screen
-                    name="PGAS"
-                    options={{ title: "ПГАС", headerTitleAlign: "center" }}
-                    component={PGASScreen}
-                />
+                >
+                    <Drawer.Screen
+                        name="Auth"
+                        options={{
+                            headerShown: false,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={AuthScreen}
+                    />
+                    <Drawer.Screen
+                        name="CreateTest"
+                        options={{
+                            headerTitle: 'Создание нового теста',
+                            headerShown: true,
+                            headerLeft: () => <BackButton adress="Tests"/>,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={CreateTestScreen}
+                    />
+                    <Drawer.Screen
+                        name="SchoolGroups"
+                        options={{
+                            headerTitle: "Группы",
+                            headerShown: true,
+                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={SchoolGroupsScreen}
+                    />
+                    <Drawer.Screen
+                        name="Tests"
+                        options={{
+                            headerTitle: "Тесты",
+                            headerShown: true,
+                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={TestsScreen}
+                    />
+                    <Drawer.Screen
+                        name="Homework"
+                        options={{
+                            headerTitle: "Домашняя работа",
+                            headerShown: true,
+                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={HomeworkScreen}
+                    />
+                    <Drawer.Screen
+                        name="TakeTest"
+                        options={{
+                            headerTitle: "Тестирование",
+                            headerShown: true,
+                            headerLeft: () => <BackButton adress="Tests"/>,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={TakeTestScreen}
+                    />
+                    <Drawer.Screen
+                        name="SchoolOneGroup"
+                        options={{
+                            headerTitle: "Список группы",
+                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={SchoolOneGroupScreen}
+                    />
+                    <Drawer.Screen
+                        name="Home"
+                        options={{
+                            title: "Главная",
+                            headerTitleAlign: "center",
+                        }}
+                        component={HomeScreen}
+                    />
+                    <Drawer.Screen
+                        name="News"
+                        options={{
+                            title: "Новости",
+                            headerTitleAlign: "center",
+                        }}
+                        component={NewsScreen}
+                    />
+                    <Drawer.Screen
+                        name="Instruction"
+                        options={{
+                            title: "Инструкци и правила пользования",
+                            headerTitleAlign: "center",
+                        }}
+                        component={InstructionScreen}
+                    />
+                    <Drawer.Screen
+                        name="Contacts"
+                        options={{
+                            title: "Контакты",
+                            headerTitleAlign: "center",
+                        }}
+                        component={ContactsScreen}
+                    />
+                    <Drawer.Screen
+                        name="SchoolMain"
+                        options={{
+                            headerTitle: "Школа Вектора",
+                            headerLeft: () => <BackButton />,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={SchoolMainScreen}
+                    />
+                    <Drawer.Screen
+                        name="Profile"
+                        options={{
+                            title: "Профиль",
+                            headerTitleAlign: "center",
+                        }}
+                        component={ProfileScreen}
+                    />
+                    <Drawer.Screen
+                        name="Users"
+                        options={{
+                            title: "Список бойцов",
+                            headerTitleAlign: "center",
+                        }}
+                        component={UsersScreen}
+                    />
+                    <Drawer.Screen
+                        name="Statistics"
+                        options={{
+                            title: "Статистика",
+                            headerTitleAlign: "center",
+                        }}
+                        component={StatisticsScreen}
+                    />
+                    <Drawer.Screen
+                        name="Events"
+                        options={{
+                            title: "Мероприятия",
+                            headerTitleAlign: "center",
+                        }}
+                        component={EventsScreen}
+                    />
+                    <Drawer.Screen
+                        name="PGAS"
+                        options={{ title: "ПГАС", headerTitleAlign: "center" }}
+                        component={PGASScreen}
+                    />
 
-                <Drawer.Screen
-                    name="Exit"
-                    options={{ title: "Выход" }}
-                    component={ExitButton}
-                />
-            </Drawer.Navigator>
-        </NavigationContainer>
+                    <Drawer.Screen
+                        name="Exit"
+                        options={{ title: "Выход" }}
+                        component={ExitButton}
+                    />
+                </Drawer.Navigator>
+            </NavigationContainer>
+        </ModalProvider>
     );
 }

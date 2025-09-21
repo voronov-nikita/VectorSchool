@@ -8,16 +8,19 @@ DATABASE = "users.db"
 
 # ---- DB connection and setup ----
 
+
 def get_db():
     if 'db' not in g:
         g.db = sqlite3.connect(DATABASE)
         g.db.row_factory = sqlite3.Row
     return g.db
 
+
 def close_db():
     db = g.pop('db', None)
     if db is not None:
         db.close()
+
 
 def init_db():
     db = get_db()
@@ -74,9 +77,51 @@ def init_db():
             FOREIGN KEY(lesson_id) REFERENCES lessons(id)
         )
     ''')
+
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS tests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            max_score INTEGER NOT NULL,
+            score_per_question INTEGER NOT NULL
+        );
+    ''')
+
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS test_questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            test_id INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            type TEXT NOT NULL CHECK(type IN ('single', 'multiple', 'text')),
+            FOREIGN KEY(test_id) REFERENCES tests(id)
+        );
+    ''')
+
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS test_answers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question_id INTEGER NOT NULL,
+            answer_text TEXT,
+            is_correct INTEGER DEFAULT 0,
+            FOREIGN KEY(question_id) REFERENCES test_questions(id)
+        );
+    ''')
+
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS test_questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            test_id INTEGER NOT NULL,
+            text TEXT,
+            answer TEXT,
+            FOREIGN KEY(test_id) REFERENCES tests(id)
+        )
+    ''')
+
+    # Сохраняем всю эту хрень
     db.commit()
 
 # ---- User funcs ----
+
 
 def add_user(data):
     hashed_password = generate_password_hash(data['password'])
@@ -89,7 +134,8 @@ def add_user(data):
             data['fio'], data['login'], hashed_password, data['telegram'],
             data.get('email'), data.get('phone'), data.get('group_name'),
             data.get('birth_date'), data['access_level'],
-            data.get('rating', 0), data.get('attendance', 0), data.get('achievements', '')
+            data.get('rating', 0), data.get(
+                'attendance', 0), data.get('achievements', '')
         ))
         db.commit()
         return True, None
@@ -98,18 +144,24 @@ def add_user(data):
     except Exception as e:
         return False, f"Неизвестная ошибка: {str(e)}"
 
+
 def get_user_by_login(login):
     db = get_db()
-    user = db.execute('SELECT * FROM users WHERE login = ?', (login,)).fetchone()
+    user = db.execute('SELECT * FROM users WHERE login = ?',
+                      (login,)).fetchone()
     return user
+
 
 def verify_password(stored_password_hash, provided_password):
     return check_password_hash(stored_password_hash, provided_password)
 
+
 def get_profile_by_login(login):
     db = get_db()
-    user = db.execute('SELECT login, fio, rating, attendance, achievements FROM users WHERE login = ?', (login,)).fetchone()
+    user = db.execute(
+        'SELECT login, fio, rating, attendance, achievements FROM users WHERE login = ?', (login,)).fetchone()
     return user
+
 
 def get_fighters(sort='fio', search=None):
     db = get_db()
@@ -138,6 +190,7 @@ def get_fighters(sort='fio', search=None):
     users = db.execute(base_query, args).fetchall()
     return [dict(u) for u in users]
 
+
 def group_top_users(users, max_line=3, top_n=10):
     ranked = []
     current_rank = 1
@@ -161,10 +214,12 @@ def group_top_users(users, max_line=3, top_n=10):
 
 # ---- Groups ----
 
+
 def add_group(name, curator):
     db = get_db()
     try:
-        db.execute("INSERT INTO groups (name, curator) VALUES (?, ?)", (name, curator))
+        db.execute(
+            "INSERT INTO groups (name, curator) VALUES (?, ?)", (name, curator))
         db.commit()
         return True, None
     except sqlite3.IntegrityError as e:
@@ -176,12 +231,14 @@ def get_groups():
     res = db.execute("SELECT * FROM groups").fetchall()
     return [dict(r) for r in res]
 
+
 def delete_group(group_id):
     db = get_db()
     db.execute("DELETE FROM groups WHERE id = ?", (group_id,))
     db.commit()
 
 # ---- Students ----
+
 
 def add_student(fio, group_id, birth_date='', telegram_id=''):
     db = get_db()
@@ -194,8 +251,10 @@ def add_student(fio, group_id, birth_date='', telegram_id=''):
 
 def get_students(group_id):
     db = get_db()
-    res = db.execute("SELECT * FROM students WHERE group_id = ?", (group_id,)).fetchall()
+    res = db.execute("SELECT * FROM students WHERE group_id = ?",
+                     (group_id,)).fetchall()
     return [dict(r) for r in res]
+
 
 def delete_student(student_id):
     db = get_db()
@@ -203,6 +262,7 @@ def delete_student(student_id):
     db.commit()
 
 # ---- Lessons ----
+
 
 def add_lesson(group_id, date, lesson_type):
     db = get_db()
@@ -212,6 +272,7 @@ def add_lesson(group_id, date, lesson_type):
     )
     db.commit()
 
+
 def get_lessons(group_id):
     db = get_db()
     res = db.execute(
@@ -220,12 +281,14 @@ def get_lessons(group_id):
     ).fetchall()
     return [dict(r) for r in res]
 
+
 def delete_lesson(lesson_id):
     db = get_db()
     db.execute("DELETE FROM lessons WHERE id = ?", (lesson_id,))
     db.commit()
 
 # ---- Attendance ----
+
 
 def set_attendance(student_id, lesson_id, status):
     db = get_db()
@@ -245,6 +308,7 @@ def set_attendance(student_id, lesson_id, status):
         )
     db.commit()
 
+
 def get_attendance(student_id, lesson_id):
     db = get_db()
     res = db.execute(
@@ -253,13 +317,15 @@ def get_attendance(student_id, lesson_id):
     ).fetchone()
     return res['status'] if res else 'Н'
 
+
 def get_group_journal(group_id):
     db = get_db()
     students = db.execute(
         "SELECT * FROM students WHERE group_id = ?", (group_id,)
     ).fetchall()
     lessons = db.execute(
-        "SELECT * FROM lessons WHERE group_id = ? ORDER BY date ASC", (group_id,)
+        "SELECT * FROM lessons WHERE group_id = ? ORDER BY date ASC", (
+            group_id,)
     ).fetchall()
     attendance = db.execute(
         "SELECT * FROM attendance"
@@ -270,9 +336,73 @@ def get_group_journal(group_id):
         'attendance': [dict(r) for r in attendance]
     }
 
+
 def can_edit_journal(user):
     return user['access_level'] in ('куратор', 'админ')
 
 
-if __name__=="__main__":
+# Tests
+
+def add_test_with_questions(test_data):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute('''
+        INSERT INTO tests (name, max_score, score_per_question)
+        VALUES (?, ?, ?)
+    ''', (test_data['name'], test_data['max_score'], test_data['score_per_question']))
+    test_id = cursor.lastrowid
+
+    for q in test_data['questions']:
+        cursor.execute('''
+            INSERT INTO test_questions (test_id, text, type)
+            VALUES (?, ?, ?)
+        ''', (test_id, q['text'], q['type']))
+        q_id = cursor.lastrowid
+
+        if q['type'] in ('single', 'multiple'):
+            for idx, ans_text in enumerate(q['answers']):
+                is_correct = 1 if idx in q['correctIndexes'] else 0
+                cursor.execute('''
+                    INSERT INTO test_answers (question_id, answer_text, is_correct)
+                    VALUES (?, ?, ?)
+                ''', (q_id, ans_text, is_correct))
+        elif q['type'] == 'text':
+            correct_answer = q['answers'][0] if q['answers'] else ""
+            cursor.execute('''
+                INSERT INTO test_answers (question_id, answer_text, is_correct)
+                VALUES (?, ?, 1)
+            ''', (q_id, correct_answer))
+    db.commit()
+    return test_id
+
+
+def get_all_tests():
+    db = get_db()
+    tests = db.execute('SELECT * FROM tests').fetchall()
+    result = []
+    for t in tests:
+        test = dict(t)
+        questions = db.execute(
+            'SELECT id, text, type FROM test_questions WHERE test_id=?', (t['id'],)).fetchall()
+        test_questions = []
+        for q in questions:
+            question = dict(q)
+            if question['type'] in ('single', 'multiple'):
+                answers = db.execute(
+                    'SELECT answer_text, is_correct FROM test_answers WHERE question_id = ?', (q['id'],)).fetchall()
+                question['answers'] = [a['answer_text'] for a in answers]
+                question['correctIndexes'] = [
+                    i for i, a in enumerate(answers) if a['is_correct'] == 1]
+            elif question['type'] == 'text':
+                ans = db.execute(
+                    'SELECT answer_text FROM test_answers WHERE question_id = ? AND is_correct=1', (q['id'],)).fetchone()
+                question['answers'] = [ans['answer_text']] if ans else []
+                question['correctIndexes'] = []
+            test_questions.append(question)
+        test['questions'] = test_questions
+        result.append(test)
+    return result
+
+
+if __name__ == "__main__":
     init_db()

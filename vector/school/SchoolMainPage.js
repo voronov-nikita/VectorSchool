@@ -1,201 +1,143 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
-    ScrollView,
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
-    TextInput,
-    Modal,
-    Alert,
+    ScrollView,
+    SafeAreaView,
+    useWindowDimensions,
 } from "react-native";
 
-import { URL } from "../config";
-// import { BackButton } from "../components/ButtonBack";
+const services = [
+    {
+        access_level: "*",
+        label: "Учебные группы",
+        color: "#1dff28ff",
+        path: "SchoolGroups",
+    },
+    {
+        access_level: "*",
+        label: "Тесты",
+        color: "#42fff2ff",
+        path: "Tests",
+    },
+    {
+        access_level: "0",
+        label: "Домашка",
+        color: "#ff041dff",
+        path: "Homework",
+    },
+    {
+        access_level: "0",
+        label: "Достижения",
+        color: "#b512aaff",
+        path: "SchoolAchive",
+    },
+    {
+        access_level: "0",
+        label: "Учебные материалы",
+        color: "#96b9ffff",
+        path: "SchoolMaterial",
+    },
+];
 
 export const SchoolMainScreen = ({ navigation }) => {
+    const { width } = useWindowDimensions();
 
-    const [groups, setGroups] = useState([]);
-    const [modalVisible, setModalVisible] = useState(false);
-    const [groupName, setGroupName] = useState("");
-    const [curator, setCurator] = useState("");
+    // Максимум 4 карточки в ряд, минимум 2
+    // Определяем количество колонок в зависимости от ширины окна
+    let numColumns = 4;
+    if (width <= 650) {
+        numColumns = 3;
+    } else if (width < 700) {
+        numColumns = 4;
+    }
 
-    const fetchGroups = () => {
-        fetch(`${URL}/groups`)
-            .then((res) => res.json())
-            .then((data) => setGroups(data))
-            .catch((e) => console.error("Ошибка API /groups", e));
-    };
-
-    useEffect(() => {
-        fetchGroups();
-    }, []);
-
-    const handleAddGroup = () => {
-        if (!groupName.trim() || !curator.trim()) {
-            Alert.alert("Ошибка", "Заполните все поля");
-            return;
-        }
-        fetch(`${URL}/groups`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                name: groupName.trim(),
-                curator: curator.trim(),
-            }),
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                if (data.error) {
-                    Alert.alert("Ошибка", data.error);
-                } else {
-                    Alert.alert("Успех", "Группа добавлена");
-                    setModalVisible(false);
-                    setGroupName("");
-                    setCurator("");
-                    fetchGroups();
-                }
-            })
-            .catch((e) => {
-                Alert.alert("Ошибка", "Не удалось добавить группу");
-            });
-    };
+    // Вычисляем ширину карточки (учитывая отступы)
+    const cardMargin = 24; // margin*2 слева и справа (12*2)
+    const cardWidth = (width - cardMargin * numColumns) / numColumns;
 
     return (
-        <View style={styles.container}>
-            {/* <BackButton /> */}
-            <ScrollView>
-                {groups.map((item) => (
-                    <TouchableOpacity
-                        key={item.id}
-                        style={styles.card}
-                        onPress={() =>
-                            navigation.navigate("SchoolOneGroup", {
-                                groupId: item.id,
-                            })
-                        }
-                    >
-                        <Text style={styles.title}>{item.name}</Text>
-                        <Text style={styles.description}>
-                            Куратор: {item.curator}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
-
-            {/* Кнопка Добавить Группу */}
-            <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setModalVisible(true)}
-            >
-                <Text style={styles.addButtonText}>+</Text>
-            </TouchableOpacity>
-
-            {/* Модальное окно */}
-            <Modal visible={modalVisible} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Добавить группу</Text>
-                        <TextInput
-                            placeholder="Название группы"
-                            value={groupName}
-                            onChangeText={setGroupName}
-                            style={styles.input}
-                        />
-                        <TextInput
-                            placeholder="Куратор группы"
-                            value={curator}
-                            onChangeText={setCurator}
-                            style={styles.input}
-                        />
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity
-                                style={styles.modalButton}
-                                onPress={handleAddGroup}
-                            >
-                                <Text style={styles.modalButtonText}>
-                                    Сохранить
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.modalButton,
-                                    styles.modalButtonCancel,
-                                ]}
-                                onPress={() => setModalVisible(false)}
-                            >
-                                <Text style={styles.modalButtonText}>
-                                    Отмена
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+        <SafeAreaView style={styles.flexContainer}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                <View style={styles.grid}>
+                    {services.map((s, idx) => (
+                        <TouchableOpacity
+                            key={idx}
+                            style={[
+                                styles.card,
+                                { backgroundColor: s.color, width: cardWidth },
+                            ]}
+                            onPress={() => navigation.navigate(s.path)}
+                        >
+                            <Text style={styles.cardText}>{s.label}</Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
-            </Modal>
-        </View>
+                <View style={styles.footer}>
+                    <Text style={styles.copyright}>
+                        © 2025 МИРЭА – Российский технологический университет
+                        {"\n"}Профориентационный отряд "Вектор"
+                    </Text>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-    card: {
-        backgroundColor: "#f1f1f1",
-        marginVertical: 6,
-        padding: 12,
-        borderRadius: 6,
-    },
-    title: { fontSize: 16, fontWeight: "bold" },
-    description: { fontSize: 14, color: "#666" },
-    addButton: {
-        position: "absolute",
-        bottom: 30,
-        right: 30,
-        backgroundColor: "#1976d2",
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        justifyContent: "center",
-        alignItems: "center",
-        elevation: 5,
-    },
-    addButtonText: { color: "#fff", fontSize: 32, lineHeight: 34 },
-
-    modalOverlay: {
+    flexContainer: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.3)",
-        justifyContent: "center",
-        alignItems: "center",
+        backgroundColor: "#fafafa",
+        position: "relative",
     },
-    modalContent: {
-        width: "80%",
-        backgroundColor: "#fff",
-        padding: 20,
-        borderRadius: 8,
-    },
-    modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 12 },
-    input: {
-        borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 6,
-        padding: 10,
-        marginBottom: 12,
-        fontSize: 16,
-    },
-    modalButtons: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-    },
-    modalButton: {
-        backgroundColor: "#1976d2",
-        paddingVertical: 10,
+    scrollContent: {
+        paddingTop: 40,
         paddingHorizontal: 20,
-        borderRadius: 6,
+        paddingBottom: 80, // чтобы контент не перекрывался футером
     },
-    modalButtonCancel: {
-        backgroundColor: "#aaa",
+    grid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        gap: 20, // В React Native нет поддержки gap, добавьте margin в карточках вместо gap если нужно
     },
-    modalButtonText: {
+    card: {
+        flexBasis: "48%",
+        width: "38%",
+        minWidth: 270,
+        maxWidth: 340,
+        height: 100,
+        borderRadius: 20,
+        margin: 12,
+        justifyContent: "flex-end",
+        padding: 20,
+        shadowColor: "#000",
+        shadowOpacity: 0.14,
+        shadowOffset: { width: 2, height: 1 },
+        elevation: 4,
+    },
+    cardText: {
         color: "#fff",
-        fontSize: 16,
+        fontSize: 14,
+        fontWeight: "500",
+    },
+    footer: {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: "#fafafa",
+        padding: 15,
+        alignItems: "center",
+        borderTopWidth: 1,
+        borderColor: "#fafafa",
+    },
+    copyright: {
+        textAlign: "center",
+        color: "#888",
+        fontSize: 13,
+        marginTop: 8,
     },
 });

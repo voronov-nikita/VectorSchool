@@ -3,14 +3,14 @@ import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-export const BackButton = () => {
+export const BackButton = ({adress=""}) => {
     const navigation = useNavigation();
 
     React.useLayoutEffect(() => {
         navigation.setOptions({
-            headerLeft: () => (
+            headerLeft: () =>  (
                 <TouchableOpacity
-                    onPress={() => navigation.goBack()}
+                    onPress={() => adress!="" ? navigation.navigate(adress) : navigation.goBack()}
                     style={{ marginLeft: 15 }}
                 >
                     <Ionicons name="arrow-back" size={24} color="#001124ff" />

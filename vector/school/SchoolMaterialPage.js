@@ -1,14 +1,13 @@
-// Сервис получения ПГАС
-// 
-// ПГАС - повышенная государственная академическая стипендия. (Короче деньги)
-// Самое сложное в получении ПГАС - заполнение докум
 
+
+import React from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 
 // путь к файлу иллюстрации
 const working = require("../assets/image-working-service.jpg");
+// const working = "";
 
-export const PGASScreen = () => {
+export const SchoolMaterialScreen = () => {
     return (
         <View style={styles.container}>
             <View style={styles.card}>
@@ -47,6 +46,7 @@ const styles = StyleSheet.create({
         width: 180,
         height: 180,
         marginBottom: 8,
+        // Для SVG можно использовать react-native-svg.
     },
     title: {
         fontSize: 32,

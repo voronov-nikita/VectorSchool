@@ -1,5 +1,5 @@
 from database import add_user
-from main import app
+from main import application
 
 def add_test_users():
     test_users = [
@@ -240,7 +240,7 @@ def fill_demo_data():
 
 # Запуск добавления тестовых пользователей
 if __name__ == "__main__":
-    with app.app_context():
+    with application.app_context():
       add_test_users()
       add_admin()
       fill_demo_data()

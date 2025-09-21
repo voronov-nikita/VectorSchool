@@ -6,20 +6,22 @@ application = Flask(__name__)
 CORS(application)
 
 
-
 @application.before_request
 def before_request():
     get_db()
-    
+
+
 @application.teardown_appcontext
 def teardown_db(exception):
     close_db()
+
 
 # Инициализация базы при запуске
 with application.app_context():
     init_db()
 
 # ----- API ENDPOINTS -----
+
 
 @application.route('/profile', methods=['GET'])
 def get_profile():
@@ -30,6 +32,7 @@ def get_profile():
     if not user:
         return jsonify({"error": "Пользователь не найден"}), 404
     return jsonify({"fio": user['fio'], "email": user['email']})
+
 
 @application.route('/login', methods=['POST'])
 def login():
@@ -54,6 +57,7 @@ def login():
         "access_level": user['access_level'],
     })
 
+
 @application.route('/profile/<login>', methods=['GET'])
 def profile(login):
     user = get_user_by_login(login)
@@ -72,12 +76,14 @@ def profile(login):
         'achievements': user['achievements'].split('\n') if user['achievements'] else []
     })
 
+
 @application.route('/users', methods=['GET'])
 def fighters_api():
     search = request.args.get('search', '')
     sort = request.args.get('sort', 'fio')
     fighters = get_fighters(sort=sort, search=search)
     return jsonify({'fighters': fighters})
+
 
 @application.route('/rating', methods=['GET'])
 def rating_api():
@@ -87,9 +93,12 @@ def rating_api():
 
 # Дополнительные эндпоинты для групп, студентов, занятий и посещаемости
 # Все это для школы Вектора
+
+
 @application.route('/groups', methods=['GET'])
 def api_get_groups():
     return jsonify(get_groups())
+
 
 @application.route('/groups', methods=['POST'])
 def api_add_group():
@@ -109,6 +118,7 @@ def api_get_students():
     group_id = request.args.get('group_id')
     students = get_students(group_id)
     return jsonify(students)
+
 
 @application.route('/students', methods=['POST'])
 def api_add_student():
@@ -131,11 +141,13 @@ def api_get_lessons():
     lessons = get_lessons(group_id)
     return jsonify(lessons)
 
+
 @application.route('/lessons', methods=['POST'])
 def api_add_lesson():
     data = request.get_json()
     add_lesson(data['group_id'], data['date'], data['lesson_type'])
     return jsonify({'result': 'Lesson added'})
+
 
 @application.route('/attendance', methods=['POST'])
 def api_set_attendance():
@@ -143,16 +155,31 @@ def api_set_attendance():
     set_attendance(data['student_id'], data['lesson_id'], data['status'])
     return jsonify({'result': 'Attendance updated'})
 
+
 @application.route('/journal', methods=['GET'])
 def api_get_journal():
     group_id = request.args.get('group_id')
     journal = get_group_journal(group_id)
     return jsonify(journal)
 
+
 @application.route('/lessons/<int:lesson_id>', methods=['DELETE'])
 def api_delete_lesson(lesson_id):
     delete_lesson(lesson_id)
     return jsonify({'result': 'Lesson deleted'})
+
+
+@application.route('/tests', methods=['GET'])
+def get_tests_api():
+    tests = get_all_tests()
+    return jsonify({'tests': tests})
+
+
+@application.route('/tests', methods=['POST'])
+def add_test_api():
+    data = request.get_json()
+    test_id = add_test_with_questions(data)
+    return jsonify({'result': 'Test added', 'id': test_id})
 
 
 if __name__ == '__main__':

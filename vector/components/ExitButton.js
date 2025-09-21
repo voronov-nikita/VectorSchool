@@ -9,11 +9,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const ExitButton = ({ navigation }) => {
     // сразу вызываем логику выхода из текущей сессии
-    useFocusEffect(async () => {
-        AsyncStorage.removeItem("authToken");
-        AsyncStorage.removeItem("expiresAt");
-        AsyncStorage.removeItem("UserId");
-        AsyncStorage.removeItem("access_level");
+    useFocusEffect(() => {
+        AsyncStorage.clear();
         navigation.reset({ index: 0, routes: [{ name: "Auth" }] });
     }, []);
 

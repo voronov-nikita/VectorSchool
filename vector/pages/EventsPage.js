@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Dimensions, Platform, ScrollView } from "react-native";
+import {
+    View,
+    Text,
+    StyleSheet,
+    Dimensions,
+    Platform,
+    ScrollView,
+} from "react-native";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 
 // русификация календаря
@@ -48,16 +55,25 @@ LocaleConfig.defaultLocale = "ru";
 
 // временная хуйня
 const lessonsSchedule = {
-    "2025-08-31": [
-        { time: "9:00 – 10:30", title: "Математика" },
-        { time: "11:00 – 12:30", title: "Информатика" },
-    ],
-    "2025-08-30": [{ time: "10:00 – 11:30", title: "Физика" }],
+    // "2025-08-31": [
+    //     { time: "9:00 – 10:30", title: "Математика" },
+    //     { time: "11:00 – 12:30", title: "Информатика" },
+    // ],
+    // "2025-08-30": [{ time: "10:00 – 11:30", title: "Физика" }],
 };
 
-
 export const EventsScreen = () => {
-    const [selectedDate, setSelectedDate] = useState("2025-08-31");
+    const getCurrentDateString = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        // месяц с ведущим нулем
+        const month = (d.getMonth() + 1).toString().padStart(2, "0"); 
+        // день с ведущим нулем
+        const day = d.getDate().toString().padStart(2, "0"); 
+        return `${year}-${month}-${day}`;
+    };
+
+    const [selectedDate, setSelectedDate] = useState(getCurrentDateString());
     const { width } = Dimensions.get("window");
     const isMobile = width < 768;
 
@@ -130,7 +146,7 @@ export const EventsScreen = () => {
             </ScrollView>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {

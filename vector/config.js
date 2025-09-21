@@ -5,10 +5,8 @@
 
 // URL сервера
 // export const URL = 'http://127.0.0.1:5000'
-// export const URL = 'http://192.168.1.143:5000'
-// export const URL = 'http://31.31.197.50:5000'
-export const URL = "https://pfo-vector.online"
-// export const URL = 'http://192.168.0.4:5000'
+export const URL = 'http://192.168.1.143:5000'
+// export const URL = "https://pfo-vector.online"
 export const contact_URL = "https://t.me/voronovnr"
 
 // логотип ПФО Вектор
