@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     radioButtons: {
-        flexDirection: "row",
+        // margin: 20,
         marginBottom: 11,
     },
     radioOption: {
@@ -486,6 +486,7 @@ const styles = StyleSheet.create({
         paddingVertical: 9,
         paddingHorizontal: 28,
         marginRight: 12,
+        marginTop: 14,
         borderRadius: 14,
     },
     radioSelected: {

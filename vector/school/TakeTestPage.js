@@ -75,7 +75,7 @@ export const TakeTestScreen = ({ route, navigation }) => {
         // запишем результат
         setScore(total);
         // покажем результат
-        showModal(`Ваш результат: ${score}`);
+        // showModal(`Ваш результат: ${score}`);
         // Отправим результат на сервер
         
         // вернем человека обратно

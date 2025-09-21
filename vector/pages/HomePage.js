@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -7,42 +8,77 @@ import {
     SafeAreaView,
     useWindowDimensions,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { URL } from "../config";
 
 const services = [
     {
-        access_level: "*",
+        access_level: ["боец"],
         label: "Календарь мероприятий",
         color: "#7A5FF6",
         path: "Events",
     },
     {
-        access_level: "*",
+        access_level: ["боец"],
         label: "Инструкция",
         color: "#FFC142",
         path: "Instruction",
     },
     {
-        access_level: "*",
+        access_level: ["боец", "куратор"],
         label: "Мой профиль",
         color: "#5CD2D0",
         path: "Profile",
     },
     {
-        access_level: "admin",
+        access_level: ["куратор", "админ", "боец"],
         label: "Школа Вектора",
         color: "#1b4cffff",
         path: "SchoolMain",
     },
-    { access_level: "*", label: "Новости", color: "#6d5200ff", path: "News" },
     {
-        access_level: "0",
+        access_level: ["куратор", "админ", "боец"],
+        label: "Новости",
+        color: "#6d5200ff",
+        path: "News",
+    },
+    {
+        access_level: ["боец"],
         label: "Получение ПГАС",
         color: "#b52a12ff",
         path: "PGAS",
     },
 ];
+
 export const HomeScreen = ({ navigation }) => {
     const { width } = useWindowDimensions();
+    const [level, setLevel] = useState("боец");
+
+    useEffect(
+        () => async () => {
+            const login = await AsyncStorage.getItem("authToken").then();
+            try {
+                const response = await fetch(
+                    `${URL}/user/access_level?login=${login}`
+                );
+                const data = await response.json();
+
+                console.log(data);
+
+                if (response.ok) {
+                    setLevel(data.access_level);
+                } else {
+                    console.warn("Ошибка сервера:", data.error);
+                    return null;
+                }
+            } catch (error) {
+                console.error("Ошибка сети:", error);
+                return null;
+            }
+        },
+        []
+    );
 
     // Максимум 4 карточки в ряд, минимум 2
     // Определяем количество колонок в зависимости от ширины окна
@@ -61,18 +97,23 @@ export const HomeScreen = ({ navigation }) => {
         <SafeAreaView style={styles.flexContainer}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.grid}>
-                    {services.map((s, idx) => (
-                        <TouchableOpacity
-                            key={idx}
-                            style={[
-                                styles.card,
-                                { backgroundColor: s.color, width: cardWidth },
-                            ]}
-                            onPress={() => navigation.navigate(s.path)}
-                        >
-                            <Text style={styles.cardText}>{s.label}</Text>
-                        </TouchableOpacity>
-                    ))}
+                    {services.map((s, idx) =>
+                        s.access_level.includes(level) ? (
+                            <TouchableOpacity
+                                key={idx}
+                                style={[
+                                    styles.card,
+                                    {
+                                        backgroundColor: s.color,
+                                        width: cardWidth,
+                                    },
+                                ]}
+                                onPress={() => navigation.navigate(s.path)}
+                            >
+                                <Text style={styles.cardText}>{s.label}</Text>
+                            </TouchableOpacity>
+                        ) : null
+                    )}
                 </View>
                 <View style={styles.footer}>
                     <Text style={styles.copyright}>

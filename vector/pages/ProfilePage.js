@@ -6,21 +6,18 @@ import {
     StyleSheet,
     ScrollView,
     ActivityIndicator,
-    Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-
 import { URL } from "../config";
 
-export const ProfileScreen = ({navigation}) => {
+export const ProfileScreen = ({ navigation }) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [login, setLogin] = useState(null);
 
     useEffect(async () => {
         const login = await AsyncStorage.getItem("authToken").then();
-        console.log(login);
         fetch(`${URL}/profile/${login}`)
             .then((res) => res.json())
             .then((data) => {
@@ -33,7 +30,7 @@ export const ProfileScreen = ({navigation}) => {
     }, []);
 
     const handleLogout = () => {
-        navigation.navigate('Exit');
+        navigation.navigate("Exit");
     };
 
     if (loading) {
@@ -48,7 +45,8 @@ export const ProfileScreen = ({navigation}) => {
     if (!profile || profile.error) {
         return (
             <Text style={{ flex: 1, textAlign: "center", marginTop: 40 }}>
-                Профиль не найден.{"\n"}Скорее всего информация еще не была добавлена.
+                Профиль не найден.{"\n"}Скорее всего информация еще не была
+                добавлена.
             </Text>
         );
     }
@@ -69,7 +67,9 @@ export const ProfileScreen = ({navigation}) => {
                 {/* Контактная информация */}
                 <Text style={styles.login}>
                     Логин в телеграмм:{" "}
-                    <Text style={{ fontWeight: "bold" }}>{profile.telegram}</Text>
+                    <Text style={{ fontWeight: "bold" }}>
+                        {profile.telegram}
+                    </Text>
                 </Text>
 
                 {/* ИНформация о бойце */}
@@ -104,7 +104,7 @@ export const ProfileScreen = ({navigation}) => {
             </View>
         </ScrollView>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {

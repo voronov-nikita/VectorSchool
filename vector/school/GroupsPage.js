@@ -9,6 +9,7 @@ import {
     Modal,
     Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { URL } from "../config";
 
@@ -17,6 +18,7 @@ export const SchoolGroupsScreen = ({ navigation }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [groupName, setGroupName] = useState("");
     const [curator, setCurator] = useState("");
+    const [level, setLevel] = useState("боец");
 
     const fetchGroups = () => {
         fetch(`${URL}/groups`)
@@ -27,6 +29,27 @@ export const SchoolGroupsScreen = ({ navigation }) => {
 
     useEffect(() => {
         fetchGroups();
+        async () => {
+            const login = await AsyncStorage.getItem("authToken").then();
+            try {
+                const response = await fetch(
+                    `${URL}/user/access_level?login=${login}`
+                );
+                const data = await response.json();
+
+                console.log(data);
+
+                if (response.ok) {
+                    setLevel(data.access_level);
+                } else {
+                    console.warn("Ошибка сервера:", data.error);
+                    return null;
+                }
+            } catch (error) {
+                console.error("Ошибка сети:", error);
+                return null;
+            }
+        };
     }, []);
 
     const handleAddGroup = () => {
@@ -82,12 +105,14 @@ export const SchoolGroupsScreen = ({ navigation }) => {
             </ScrollView>
 
             {/* Кнопка Добавить Группу */}
-            <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setModalVisible(true)}
-            >
-                <Text style={styles.addButtonText}>+</Text>
-            </TouchableOpacity>
+            {["куратор", "админ"].includes(level) ? (
+                <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => setModalVisible(true)}
+                >
+                    <Text style={styles.addButtonText}>+</Text>
+                </TouchableOpacity>
+            ) : null}
 
             {/* Модальное окно */}
             <Modal visible={modalVisible} animationType="slide" transparent>

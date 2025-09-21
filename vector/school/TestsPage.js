@@ -8,13 +8,39 @@ import {
 } from "react-native";
 import { URL } from "../config";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 export const TestsScreen = ({ navigation }) => {
     const [tests, setTests] = useState([]);
+    const [level, setLevel] = useState("боец");
 
     useEffect(() => {
         fetch(`${URL}/tests`)
             .then((res) => res.json())
             .then((data) => setTests(data.tests));
+
+        async () => {
+            const login = await AsyncStorage.getItem("authToken").then();
+            console.log(login);
+            try {
+                const response = await fetch(
+                    `${URL}/user/access_level?login=${login}`
+                );
+                const data = await response.json();
+
+                console.log(data);
+
+                if (response.ok) {
+                    setLevel(data.access_level);
+                } else {
+                    console.warn("Ошибка сервера:", data.error);
+                    return null;
+                }
+            } catch (error) {
+                console.error("Ошибка сети:", error);
+                return null;
+            }
+        };
     }, []);
 
     return (
@@ -37,12 +63,14 @@ export const TestsScreen = ({ navigation }) => {
                 )}
                 contentContainerStyle={{ paddingBottom: 120 }}
             />
-            <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => navigation.navigate("CreateTest")}
-            >
-                <Text style={styles.addButtonText}>+</Text>
-            </TouchableOpacity>
+            {["куратор", "админ"].includes(level) ? (
+                <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => navigation.navigate("CreateTest")}
+                >
+                    <Text style={styles.addButtonText}>+</Text>
+                </TouchableOpacity>
+            ) : null}
         </View>
     );
 };

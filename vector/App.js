@@ -79,6 +79,16 @@ export default function App() {
                         }}
                         component={SchoolGroupsScreen}
                     />
+                    {/* <Drawer.Screen
+                        name="SchoolJournal"
+                        options={{
+                            headerTitle: "Журнал посещаемости",
+                            headerShown: true,
+                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={JournalScreen}
+                    /> */}
                     <Drawer.Screen
                         name="Tests"
                         options={{

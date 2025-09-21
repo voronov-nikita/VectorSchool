@@ -3,147 +3,311 @@ import {
     View,
     Text,
     ScrollView,
-    ActivityIndicator,
     StyleSheet,
     TouchableOpacity,
     Modal,
+    FlatList,
     TextInput,
     Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { URL } from "../config";
 
-export const SchoolOneGroupScreen = ({ route }) => {
+export const SchoolOneGroupScreen = ({ route, navigation }) => {
     const { groupId, groupName } = route.params;
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Для модального окна
-    const [modalVisible, setModalVisible] = useState(false);
-    const [fio, setFio] = useState("");
-    const [birthDate, setBirthDate] = useState("");
-    const [telegramId, setTelegramId] = useState("");
-
-    // Загрузка студентов группы
-    const fetchStudents = () => {
-        setLoading(true);
-        fetch(`${URL}/students?group_id=${groupId}`)
-            .then((res) => res.json())
-            .then((data) => {
-                setStudents(data);
-                setLoading(false);
-            })
-            .catch((e) => {
-                console.error("Ошибка API /students", e);
-                setLoading(false);
-            });
-    };
+    const [addVisible, setAddVisible] = useState(false);
+    const [allUsers, setAllUsers] = useState([]);
+    const [filteredUsers, setFilteredUsers] = useState([]);
+    const [searchText, setSearchText] = useState("");
+    const [toAddId, setToAddId] = useState(null);
+    const [level, setLevel] = useState("боец");
+    const [studentToDelete, setStudentToDelete] = useState(null);
 
     useEffect(() => {
         fetchStudents();
     }, [groupId]);
 
-    // Обработка добавления студента
-    const handleAddStudent = () => {
-        if (!fio.trim()) {
-            Alert.alert("Ошибка", "Введите ФИО");
-            return;
-        }
-        // Дополнительно можно проверить формат даты и telegramId
+    useEffect(
+        () => async () => {
+            const login = await AsyncStorage.getItem("authToken").then();
+            console.log(login);
+            try {
+                const response = await fetch(
+                    `${URL}/user/access_level?login=${login}`
+                );
+                const data = await response.json();
+
+                console.log(data);
+
+                if (response.ok) {
+                    setLevel(data.access_level);
+                } else {
+                    console.warn("Ошибка сервера:", data.error);
+                    return null;
+                }
+            } catch (error) {
+                console.error("Ошибка сети:", error);
+                return null;
+            }
+        },
+        []
+    );
+
+    const fetchStudents = () => {
+        setLoading(true);
+        fetch(`${URL}/students?group_id=${groupId}`)
+            .then((res) => res.json())
+            .then(setStudents)
+            .catch(() => Alert.alert("Ошибка загрузки"))
+            .finally(() => setLoading(false));
+    };
+
+    const handleAttendance = (studentId, delta) => {
+        fetch(`${URL}/students/${studentId}/attendance`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ delta }),
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                setStudents((prev) =>
+                    prev.map((st) =>
+                        st.id === studentId
+                            ? { ...st, attendance: data.attendance }
+                            : st
+                    )
+                );
+            })
+            .catch(() => Alert.alert("Ошибка обновления"));
+    };
+
+    const handleDelete = () => {
+        fetch(`${URL}/students/${studentToDelete}`, { method: "DELETE" })
+            .then(() => {
+                setStudents((prev) =>
+                    prev.filter((st) => st.id !== studentToDelete)
+                );
+                setStudentToDelete(null);
+            })
+            .catch(() => Alert.alert("Ошибка удаления"));
+    };
+
+    // костыль добавления индификатора
+    const normalizeUsersWithId = (users) => {
+        return users.map((user, index) => ({
+            ...user,
+            id: index + 1, // генерируем id начиная с 1
+        }));
+    };
+
+    const openAddModal = () => {
+        fetch(`${URL}/users`)
+            .then((res) => res.json())
+            .then((data) => {
+                // Получаем всех пользователей из ответа
+                const allUsersArray = data.fighters || data.users || [];
+                // Собираем id учеников, уже в группе
+                const existingIds = new Set(students.map((s) => s.id));
+                // Фильтруем пользователей, убрать тех, кто уже есть
+                const filteredUsers = allUsersArray.filter(
+                    (u) => !existingIds.has(u.id)
+                );
+
+                // Если необходимо, сгенерировать id, если их вдруг нет:
+                const normalizedUsers = filteredUsers.map((u, idx) =>
+                    u.id ? u : { ...u, id: idx + 1 }
+                );
+
+                setAllUsers(normalizedUsers);
+                setFilteredUsers(normalizedUsers);
+                setAddVisible(true);
+                setSearch("");
+                setToAddId(null);
+            })
+            .catch(() => Alert.alert("Ошибка загрузки"));
+    };
+
+    const onSearchChange = (text) => {
+        setSearchText(text);
+        const filtered = allUsers.filter((user) =>
+            user.fio.toLowerCase().includes(text.toLowerCase())
+        );
+        setFilteredUsers(filtered);
+        console.log(allUsers);
+        console.log(filteredUsers);
+    };
+
+    const handleAddUser = () => {
+        if (!toAddId) return;
+        const user = allUsers.find((u) => u.id === toAddId);
+        if (!user) return;
+
         fetch(`${URL}/students`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                fio: fio.trim(),
-                birth_date: birthDate.trim(),
-                telegram_id: telegramId.trim(),
+                fio: user.fio,
                 group_id: groupId,
             }),
         })
-            .then((res) => res.json())
-            .then((data) => {
-                if (data.error) {
-                    Alert.alert("Ошибка", data.error);
-                } else {
-                    Alert.alert("Успех", "Студент добавлен");
-                    setModalVisible(false);
-                    setFio("");
-                    setBirthDate("");
-                    setTelegramId("");
-                    fetchStudents();
-                }
+            .then(() => {
+                setAddVisible(false);
+                setToAddId(null);
+                fetchStudents();
             })
-            .catch(() => {
-                Alert.alert("Ошибка", "Не удалось добавить студента");
-            });
+            .catch(() => Alert.alert("Ошибка добавления"));
     };
 
-    if (loading) {
-        return <ActivityIndicator style={{ marginTop: 30 }} />;
-    }
+    if (loading)
+        return (
+            <View style={styles.centered}>
+                <Text>Загрузка...</Text>
+            </View>
+        );
 
     return (
-        <View style={{ flex: 1 }}>
-            <ScrollView style={styles.container}>
-                <Text style={styles.header}>Студенты группы: {groupName}</Text>
+        <View style={styles.container}>
+            <Text style={styles.header}>Студенты группы: {groupName}</Text>
+            <ScrollView>
+                {students.length === 0 && (
+                    <Text style={{ paddingVertical: 10 }}>
+                        В группе пока нет студентов.
+                    </Text>
+                )}
                 {students.map((student) => (
-                    <View key={student.id} style={styles.card}>
-                        <Text style={styles.name}>{student.fio}</Text>
+                    <View key={student.id} style={styles.studentRow}>
+                        <Text style={styles.studentName}>{student.fio}</Text>
+                        {["куратор", "админ"].includes(level) ? (
+                            <View style={styles.actions}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.attendanceBtn,
+                                        styles.minusBtn,
+                                    ]}
+                                    onPress={() =>
+                                        handleAttendance(student.id, -1)
+                                    }
+                                >
+                                    <Text style={styles.attendanceText}>-</Text>
+                                </TouchableOpacity>
+                                <Text style={styles.attendanceCount}>
+                                    {student.attendance ?? 0}
+                                </Text>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.attendanceBtn,
+                                        styles.plusBtn,
+                                    ]}
+                                    onPress={() =>
+                                        handleAttendance(student.id, 1)
+                                    }
+                                >
+                                    <Text style={styles.attendanceText}>+</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.deleteBtn}
+                                    onPress={() =>
+                                        setStudentToDelete(student.id)
+                                    }
+                                >
+                                    <Text style={styles.deleteBtnText}>
+                                        Удалить
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : null}
                     </View>
                 ))}
-                {students.length === 0 && <Text>Студентов нет</Text>}
             </ScrollView>
 
-            {/* Кнопка добавления */}
-            <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setModalVisible(true)}
-            >
-                <Text style={styles.addButtonText}>+</Text>
+            <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
+                <Text style={styles.addButtonText}>Добавить</Text>
             </TouchableOpacity>
 
-            {/* Модальное окно */}
-            <Modal visible={modalVisible} animationType="slide" transparent>
+            {/* Добавление студента */}
+            <Modal visible={addVisible} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Добавить студента</Text>
+                        <Text style={styles.modalTitle}>Выберите студента</Text>
                         <TextInput
-                            placeholder="ФИО"
-                            value={fio}
-                            onChangeText={setFio}
-                            style={styles.input}
+                            value={searchText}
+                            onChangeText={onSearchChange}
+                            placeholder="Поиск по имени"
+                            style={styles.searchInput}
                         />
-                        <TextInput
-                            placeholder="Дата рождения (например, 01.01.2000)"
-                            value={birthDate}
-                            onChangeText={setBirthDate}
-                            style={styles.input}
+                        <FlatList
+                            data={filteredUsers}
+                            keyExtractor={(item) => item.id.toString()}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[
+                                        styles.modalListItem,
+                                        toAddId === item.id &&
+                                            styles.modalListItemSelected,
+                                    ]}
+                                    onPress={() => setToAddId(item.id)}
+                                >
+                                    <Text style={styles.modalListText}>
+                                        {item.fio}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                            style={{ maxHeight: 200 }}
                         />
-                        <TextInput
-                            placeholder="ID Telegram"
-                            value={telegramId}
-                            onChangeText={setTelegramId}
-                            style={styles.input}
-                        />
-                        <View style={styles.modalButtons}>
+                        <View style={styles.modalActions}>
                             <TouchableOpacity
-                                style={styles.modalButton}
-                                onPress={handleAddStudent}
+                                disabled={!toAddId}
+                                onPress={handleAddUser}
+                                style={[
+                                    styles.confirmButton,
+                                    {
+                                        backgroundColor: toAddId
+                                            ? "#1976d2"
+                                            : "#aaa",
+                                    },
+                                ]}
                             >
-                                <Text style={styles.modalButtonText}>
-                                    Сохранить
+                                <Text style={styles.confirmButtonText}>
+                                    Добавить
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[
-                                    styles.modalButton,
-                                    styles.modalButtonCancel,
-                                ]}
-                                onPress={() => setModalVisible(false)}
+                                onPress={() => setAddVisible(false)}
+                                style={[styles.cancelButton]}
                             >
-                                <Text style={styles.modalButtonText}>
+                                <Text style={styles.cancelButtonText}>
                                     Отмена
                                 </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Удаление студента */}
+            <Modal visible={!!studentToDelete} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Удалить студента?</Text>
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                onPress={handleDelete}
+                                style={[
+                                    styles.confirmButton,
+                                    { backgroundColor: "#d32f2f" },
+                                ]}
+                            >
+                                <Text style={styles.confirmButtonText}>Да</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => setStudentToDelete(null)}
+                                style={[styles.cancelButton]}
+                            >
+                                <Text style={styles.cancelButtonText}>Нет</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -154,66 +318,124 @@ export const SchoolOneGroupScreen = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { padding: 20, backgroundColor: "#fff" },
-    header: { fontSize: 18, fontWeight: "bold", marginBottom: 12 },
-    card: {
-        backgroundColor: "#f9f9f9",
-        padding: 12,
-        marginVertical: 6,
+    container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+    header: { fontSize: 22, fontWeight: "700", marginBottom: 10 },
+    studentRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        backgroundColor: "#f5f5f5",
+        marginBottom: 10,
         borderRadius: 6,
+        justifyContent: "space-between",
     },
-    name: { fontSize: 16 },
-
+    studentName: { fontSize: 18 },
+    actions: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    attendanceBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: "center",
+        justifyContent: "center",
+        marginHorizontal: 5,
+    },
+    minusBtn: { backgroundColor: "#eee" },
+    plusBtn: { backgroundColor: "#4caf50" },
+    attendanceText: { fontSize: 22, fontWeight: "700" },
+    attendanceCount: {
+        fontSize: 18,
+        width: 24,
+        textAlign: "center",
+        fontWeight: "600",
+    },
+    deleteBtn: {
+        backgroundColor: "#d32f2f",
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 15,
+        marginLeft: 10,
+    },
+    deleteBtnText: {
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: 16,
+    },
     addButton: {
         position: "absolute",
-        bottom: 30,
-        right: 30,
+        bottom: 34,
+        left: 28,
         backgroundColor: "#1976d2",
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        justifyContent: "center",
-        alignItems: "center",
-        elevation: 5,
+        paddingVertical: 12,
+        paddingHorizontal: 25,
+        borderRadius: 22,
+        elevation: 6,
     },
-    addButtonText: { color: "#fff", fontSize: 32, lineHeight: 34 },
-
+    addButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: 18,
+    },
     modalOverlay: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.3)",
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.25)",
     },
     modalContent: {
         width: "85%",
         backgroundColor: "#fff",
         padding: 20,
-        borderRadius: 8,
+        borderRadius: 12,
     },
-    modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 12 },
-    input: {
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        marginBottom: 15,
+        textAlign: "center",
+    },
+    searchInput: {
         borderWidth: 1,
         borderColor: "#ccc",
         borderRadius: 6,
-        padding: 10,
-        marginBottom: 12,
-        fontSize: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        marginBottom: 10,
     },
-    modalButtons: {
+    modalListItem: {
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: "#eee",
+    },
+    modalListItemSelected: {
+        backgroundColor: "#dbeafe",
+    },
+    modalActions: {
         flexDirection: "row",
         justifyContent: "space-between",
     },
-    modalButton: {
-        backgroundColor: "#1976d2",
+    confirmButton: {
         paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 6,
+        paddingHorizontal: 30,
+        borderRadius: 8,
     },
-    modalButtonCancel: {
-        backgroundColor: "#aaa",
-    },
-    modalButtonText: {
+    confirmButtonText: {
         color: "#fff",
-        fontSize: 16,
+        fontWeight: "700",
+    },
+    cancelButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 30,
+        borderRadius: 8,
+        backgroundColor: "#aaa",
+        alignItems: "center",
+    },
+    cancelButtonText: {
+        color: "#fff",
+        fontWeight: "700",
     },
 });

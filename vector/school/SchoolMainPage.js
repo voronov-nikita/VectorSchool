@@ -50,12 +50,12 @@ export const SchoolMainScreen = ({ navigation }) => {
     let numColumns = 4;
     if (width <= 650) {
         numColumns = 3;
-    } else if (width < 700) {
+    } else if (width < 750) {
         numColumns = 4;
     }
 
     // Вычисляем ширину карточки (учитывая отступы)
-    const cardMargin = 24; // margin*2 слева и справа (12*2)
+    const cardMargin = 20; // margin*2 слева и справа (10*2)
     const cardWidth = (width - cardMargin * numColumns) / numColumns;
 
     return (

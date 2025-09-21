@@ -39,7 +39,7 @@ export const AuthScreen = ({ navigation }) => {
                     navigation.reset({ index: 0, routes: [{ name: "Home" }] });
                 }
             } catch (e) {
-                /**/
+                console.log("Ошибка", e);
             }
             setLoading(false);
         };
@@ -78,7 +78,7 @@ export const AuthScreen = ({ navigation }) => {
                     "expiresAt",
                     String(Date.now() + 3 * 24 * 3600 * 1000)
                 );
-                await AsyncStorage.setItem("access_level", data.access_login)
+                await AsyncStorage.setItem("access_level", data.access_level);
                 // Сброс всей истории навигации, чтобы нельзя было вернуться назад
                 navigation.reset({ index: 0, routes: [{ name: "Home" }] });
             } else {
