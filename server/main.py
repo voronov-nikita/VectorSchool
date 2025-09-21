@@ -58,6 +58,19 @@ def login():
     })
 
 
+@application.route('/user/access_level', methods=['GET'])
+def get_user_access_level():
+    login = request.args.get('login')
+    if not login:
+        return jsonify({"error": "Missing 'login' parameter"}), 400
+
+    access_level = get_user_access_level_from_db(login)
+    if access_level:
+        return jsonify({"access_level": access_level})
+    else:
+        return jsonify({"error": "User not found"}), 404
+
+
 @application.route('/profile/<login>', methods=['GET'])
 def profile(login):
     user = get_user_by_login(login)
@@ -135,6 +148,32 @@ def api_add_student():
     return jsonify({'result': 'Student added'})
 
 
+@application.route('/students/<int:student_id>', methods=['DELETE'])
+def api_delete_student(student_id):
+    db = get_db()
+    db.execute("DELETE FROM students WHERE id=?", (student_id,))
+    db.commit()
+    return jsonify({"result": "deleted"})
+
+
+@application.route('/students/<int:student_id>/attendance', methods=['POST'])
+def api_update_attendance(student_id):
+    data = request.get_json()
+    delta = data.get('delta')
+    if delta not in [1, -1]:
+        return jsonify({'error': 'Некорректное изменение'}), 400
+    db = get_db()
+    student = db.execute(
+        "SELECT attendance FROM students WHERE id=?", (student_id,)).fetchone()
+    if not student:
+        return jsonify({"error": "Студент не найден"}), 404
+    new_value = max((student['attendance'] or 0) + delta, 0)
+    db.execute("UPDATE students SET attendance=? WHERE id=?",
+               (new_value, student_id))
+    db.commit()
+    return jsonify({'attendance': new_value})
+
+
 @application.route('/lessons', methods=['GET'])
 def api_get_lessons():
     group_id = request.args.get('group_id')
@@ -149,18 +188,24 @@ def api_add_lesson():
     return jsonify({'result': 'Lesson added'})
 
 
-@application.route('/attendance', methods=['POST'])
-def api_set_attendance():
-    data = request.get_json()
-    set_attendance(data['student_id'], data['lesson_id'], data['status'])
-    return jsonify({'result': 'Attendance updated'})
-
-
 @application.route('/journal', methods=['GET'])
 def api_get_journal():
     group_id = request.args.get('group_id')
     journal = get_group_journal(group_id)
     return jsonify(journal)
+
+
+@application.route('/attendance/bulk', methods=['POST'])
+def save_attendance_bulk():
+    data = request.get_json()
+    lesson_id = data.get('lesson_id')
+    # [{student_id: ..., status: '+' или 'Н'}]
+    attendances = data.get('attendances')
+    if not lesson_id or not isinstance(attendances, list):
+        return jsonify({'error': 'Недостаточно данных'}), 400
+    for rec in attendances:
+        set_attendance(rec['student_id'], lesson_id, rec['status'])
+    return jsonify({'result': 'ok'})
 
 
 @application.route('/lessons/<int:lesson_id>', methods=['DELETE'])

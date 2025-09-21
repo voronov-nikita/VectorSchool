@@ -53,6 +53,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             fio TEXT NOT NULL,
             group_id INTEGER,
+            attendance INTEGER DEFAULT 0,
             birth_date TEXT,
             telegram_id TEXT,
             FOREIGN KEY(group_id) REFERENCES groups(id)
@@ -150,6 +151,13 @@ def get_user_by_login(login):
     user = db.execute('SELECT * FROM users WHERE login = ?',
                       (login,)).fetchone()
     return user
+
+def get_user_access_level_from_db(login):
+    db = get_db()
+    user = db.execute("SELECT access_level FROM users WHERE login = ?", (login,)).fetchone()
+    if user:
+        return user['access_level']
+    return None
 
 
 def verify_password(stored_password_hash, provided_password):
