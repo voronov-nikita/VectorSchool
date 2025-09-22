@@ -1,4 +1,4 @@
-from database import add_user
+from server.database.database import add_user
 from main import application
 
 def add_test_users():
@@ -237,10 +237,53 @@ def fill_demo_data():
     db.close()
     print("Demo data inserted.")
 
+def insert_test_achievements():
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
 
+    # Тестовые ачивки для каталога (название, описание, имя файла)
+    test_achievements = [
+        ("Fast Learner", "Признание за быстрое обучение", "fast_learner.png"),
+        ("Coding Master", "Высокие навыки программирования", "coding_master.png"),
+        ("Bug Hunter", "Обнаружение и исправление багов", "bug_hunter.png")
+    ]
+
+    # Вставляем в achievements_catalog
+    for name, desc, filename in test_achievements:
+        try:
+            cursor.execute(
+                "INSERT INTO achievements_catalog (name, description, filename) VALUES (?, ?, ?)",
+                (name, desc, filename)
+            )
+        except sqlite3.IntegrityError:
+            # Если запись уже существует - игнорируем
+            pass
+
+    # Тестовые связи достижений с пользователями (логин, имя ачивки, дата)
+    test_user_achievements = [
+        ("user1", "Fast Learner", "2025-01-10"),
+        ("user1", "Coding Master", "2025-02-15"),
+        ("user2", "Bug Hunter", "2025-03-20"),
+        ("user3", "Fast Learner", "2025-04-05"),
+    ]
+
+    for user_login, ach_name, date_obtained in test_user_achievements:
+        try:
+            cursor.execute(
+                "INSERT INTO user_achievements (user_login, achievement_name, date_obtained) VALUES (?, ?, ?)",
+                (user_login, ach_name, date_obtained)
+            )
+        except sqlite3.IntegrityError:
+            pass
+
+    conn.commit()
+    conn.close()
+    
+    
 # Запуск добавления тестовых пользователей
 if __name__ == "__main__":
     with application.app_context():
       add_test_users()
       add_admin()
       fill_demo_data()
+      insert_test_achievements()

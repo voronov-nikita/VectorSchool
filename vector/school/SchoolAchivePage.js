@@ -1,64 +1,83 @@
+import React, { useEffect, useState } from "react";
+import {
+    View,
+    Text,
+    Image,
+    ScrollView,
+    StyleSheet,
+    ActivityIndicator,
+    Dimensions,
+} from "react-native";
 
+import { URL } from "../config";
 
-import React from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
+const windowWidth = Dimensions.get("window").width;
+const imgSize = (windowWidth - 60) / 3;
 
-// путь к файлу иллюстрации
-const working = require("../assets/image-working-service.jpg");
-// const working = "";
+export const SchoolAchiveScreen = ({ login }) => {
+    const [achievements, setAchievements] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-export const SchoolAchiveScreen = () => {
+    useEffect(() => {
+        fetch(`${URL}/achievements`, {
+            headers: { login },
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                if (!data.error) {
+                    setAchievements(data);
+                }
+                setLoading(false);
+            })
+            .catch(() => setLoading(false));
+    }, [login]);
+
+    if (loading) {
+        return (
+            <ActivityIndicator
+                size="large"
+                style={{ flex: 1, justifyContent: "center" }}
+            />
+        );
+    }
+
     return (
-        <View style={styles.container}>
-            <View style={styles.card}>
-                <Image
-                    source={working}
-                    style={styles.dog}
-                    resizeMode="contain"
-                />
-                <Text style={styles.title}>Пока здесь пусто</Text>
-                <Text style={styles.subtitle}>
-                    Разраб леньтяй, фитча пока не реализована
-                </Text>
-            </View>
-        </View>
+        <ScrollView contentContainerStyle={styles.container}>
+            {achievements.map((ach, i) => (
+                <View key={i} style={styles.achievementCard}>
+                    <Image
+                        source={{
+                            uri: `${URL}:5000${ach.url}`,
+                        }}
+                        style={styles.image}
+                    />
+                    <Text style={styles.date}>{ach.date}</Text>
+                </View>
+            ))}
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        backgroundColor: "#fff",
-        justifyContent: "center",
+        padding: 10,
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "space-between",
+    },
+    achievementCard: {
+        width: imgSize,
+        marginBottom: 15,
         alignItems: "center",
     },
-    card: {
-        alignItems: "center",
-        padding: 32,
-        borderRadius: 24,
-        backgroundColor: "#fff",
-        shadowColor: "#000",
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
-        elevation: 8,
+    image: {
+        width: imgSize,
+        height: imgSize,
+        borderRadius: 12,
     },
-    dog: {
-        width: 180,
-        height: 180,
-        marginBottom: 8,
-        // Для SVG можно использовать react-native-svg.
-    },
-    title: {
-        fontSize: 32,
-        fontWeight: "bold",
-        color: "#222",
-        marginTop: 10,
-        marginBottom: 6,
-        textAlign: "center",
-    },
-    subtitle: {
-        fontSize: 18,
+    date: {
+        marginTop: 5,
+        fontSize: 12,
         color: "#555",
-        textAlign: "center",
     },
 });

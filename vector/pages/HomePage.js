@@ -14,28 +14,28 @@ import { URL } from "../config";
 
 const services = [
     {
-        access_level: ["боец"],
+        access_level: ["боец", "админ"],
         label: "Календарь мероприятий",
-        color: "#7A5FF6",
+        color: "#a9ba48ff",
         path: "Events",
     },
     {
-        access_level: ["боец"],
+        access_level: ["боец", "админ"],
         label: "Инструкция",
-        color: "#FFC142",
+        color: "#8a8a8aff",
         path: "Instruction",
     },
     {
-        access_level: ["боец", "куратор"],
+        access_level: ["боец", "куратор", "админ"],
         label: "Мой профиль",
-        color: "#5CD2D0",
+        color: "#5cd287ff",
         path: "Profile",
     },
     {
-        access_level: ["куратор", "админ", "боец"],
-        label: "Школа Вектора",
-        color: "#1b4cffff",
-        path: "SchoolMain",
+        access_level: ["боец", "админ"],
+        label: "Статистика",
+        color: "#e97900ff",
+        path: "Statistics",
     },
     {
         access_level: ["куратор", "админ", "боец"],
@@ -44,10 +44,22 @@ const services = [
         path: "News",
     },
     {
-        access_level: ["боец"],
+        access_level: ["боец", "админ"],
         label: "Получение ПГАС",
         color: "#b52a12ff",
         path: "PGAS",
+    },
+    {
+        access_level: ["админ"],
+        label: "ДОД",
+        color: "#e90090ff",
+        path: "DOD",
+    },
+    {
+        access_level: ["куратор", "админ", "боец"],
+        label: "Школа Вектора",
+        color: "#1b4cffff",
+        path: "SchoolMain",
     },
 ];
 
@@ -64,10 +76,9 @@ export const HomeScreen = ({ navigation }) => {
                 );
                 const data = await response.json();
 
-                console.log(data);
-
                 if (response.ok) {
                     setLevel(data.access_level);
+                    console.log(level);
                 } else {
                     console.warn("Ошибка сервера:", data.error);
                     return null;

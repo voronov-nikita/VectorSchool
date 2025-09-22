@@ -3,17 +3,12 @@
 // Является немного костылем, но что поделать, зато работает 😜
 //
 
-import React from 'react';
-import { useFocusEffect, useCallback } from "@react-navigation/native";
+import React, { useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-
 export const ExitButton = ({ navigation }) => {
-    // сразу вызываем логику выхода из текущей сессии
-    useFocusEffect(React.useCallback(() => {
+    useEffect(() => {
         AsyncStorage.clear();
         navigation.reset({ index: 0, routes: [{ name: "Auth" }] });
-    }, []));
-
-    return null;
+    }, []);
 };

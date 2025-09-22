@@ -20,12 +20,14 @@ import { StatisticsScreen } from "./pages/StatisticPage";
 import { InstructionScreen } from "./pages/InstructionPage";
 
 // компоненты для нормальной работы
+import BellButton from "./components/NotifictionButton";
+import { ModalProvider } from "./components/InfoModal";
 import { ExitButton } from "./components/ExitButton";
 import { BackButton } from "./components/ButtonBack";
-import { ModalProvider } from "./components/InfoModal";
 
 // Все блоки, которые использует школа Вектора
 import { SchoolOneGroupScreen } from "./school/SchoolOneGroupPage";
+import { SchoolAchiveScreen } from "./school/SchoolAchivePage";
 import { SchoolMainScreen } from "./school/SchoolMainPage";
 import { CreateTestScreen } from "./school/CreateTestPage";
 import { SchoolGroupsScreen } from "./school/GroupsPage";
@@ -129,9 +131,19 @@ export default function App() {
                         component={SchoolOneGroupScreen}
                     />
                     <Drawer.Screen
+                        name="SchoolAchive"
+                        options={{
+                            headerTitle: "Достижения",
+                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={SchoolAchiveScreen}
+                    />
+                    <Drawer.Screen
                         name="Home"
                         options={{
                             title: "Главная",
+                            headerRight: () => <BellButton />,
                             headerTitleAlign: "center",
                         }}
                         component={HomeScreen}

@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 
 # DATABASE = 'journal.db'
-DATABASE = "users.db"
+DATABASE = "../users.db"
 
 # ---- DB connection and setup ----
 
@@ -117,6 +117,14 @@ def init_db():
             FOREIGN KEY(test_id) REFERENCES tests(id)
         )
     ''')
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS achievements_catalog (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            filename TEXT NOT NULL UNIQUE
+        )
+    ''')
 
     # Сохраняем всю эту хрень
     db.commit()
@@ -152,9 +160,11 @@ def get_user_by_login(login):
                       (login,)).fetchone()
     return user
 
+
 def get_user_access_level_from_db(login):
     db = get_db()
-    user = db.execute("SELECT access_level FROM users WHERE login = ?", (login,)).fetchone()
+    user = db.execute(
+        "SELECT access_level FROM users WHERE login = ?", (login,)).fetchone()
     if user:
         return user['access_level']
     return None
@@ -410,6 +420,21 @@ def get_all_tests():
         test['questions'] = test_questions
         result.append(test)
     return result
+
+
+def get_user_achievements(login):
+    db = get_db()
+    achievements = db.execute('''
+        SELECT achievement_name, date_obtained
+        FROM user_achievements
+        WHERE user_login = ?
+        ORDER BY date_obtained DESC
+    ''', (login,)).fetchall()
+    return [{
+        'name': ach['achievement_name'],
+        'date': ach['date_obtained'],
+        'url': f"/achievements_images/{ach['achievement_name']}"
+    } for ach in achievements]
 
 
 if __name__ == "__main__":
