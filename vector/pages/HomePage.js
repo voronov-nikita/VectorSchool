@@ -50,7 +50,7 @@ const services = [
         path: "PGAS",
     },
     {
-        access_level: ["админ"],
+        access_level: ["админ", "боец"],
         label: "ДОД",
         color: "#e90090ff",
         path: "DOD",

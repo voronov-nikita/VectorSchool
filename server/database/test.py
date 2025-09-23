@@ -1,4 +1,4 @@
-from server.database.database import add_user
+from server.database import add_user
 from main import application
 
 def add_test_users():

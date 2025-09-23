@@ -1,12 +1,12 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from database.database import *
+from database import *
 from werkzeug.utils import secure_filename
 import os
 # from admin.app import index
 
 application = Flask(__name__)
-CORS(application)
+CORS(application, origins=["*"])
 
 ACHIEVEMENTS_FOLDER = './achievements_images'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -115,6 +115,7 @@ def add_achievement():
 
 @application.route('/user/access_level', methods=['GET'])
 def get_user_access_level():
+    print("\n\n\n\n")
     login = request.args.get('login')
     if not login:
         return jsonify({"error": "Missing 'login' parameter"}), 400
@@ -123,6 +124,7 @@ def get_user_access_level():
     if access_level:
         return jsonify({"access_level": access_level})
     else:
+        print("SERVISE OK")
         return jsonify({"error": "User not found"}), 404
 
 

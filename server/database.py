@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 
 # DATABASE = 'journal.db'
-DATABASE = "../users.db"
+DATABASE = "./users.db"
 
 # ---- DB connection and setup ----
 

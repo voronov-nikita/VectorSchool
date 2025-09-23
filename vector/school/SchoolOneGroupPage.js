@@ -181,7 +181,7 @@ export const SchoolOneGroupScreen = ({ route, navigation }) => {
                 {students.map((student) => (
                     <View key={student.id} style={styles.studentRow}>
                         <Text style={styles.studentName}>{student.fio}</Text>
-                        {["куратор", "админ"].includes(level) ? (
+                        {["куратор", "админ", 'боец'].includes(level) ? (
                             <View style={styles.actions}>
                                 <TouchableOpacity
                                     style={[
