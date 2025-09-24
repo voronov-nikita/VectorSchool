@@ -63,7 +63,7 @@ export const TestsScreen = ({ navigation }) => {
                 )}
                 contentContainerStyle={{ paddingBottom: 120 }}
             />
-            {["куратор", "админ", "боец"].includes(level) ? (
+            {["куратор", "админ"].includes(level) ? (
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() => navigation.navigate("CreateTest")}
