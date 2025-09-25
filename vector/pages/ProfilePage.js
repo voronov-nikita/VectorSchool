@@ -6,27 +6,34 @@ import {
     StyleSheet,
     ScrollView,
     ActivityIndicator,
+    Image,
+    FlatList,
+    Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { URL } from "../config";
+import { URL, achievementsConfig } from "../config";
+
+const { width } = Dimensions.get("window");
+const ITEM_SIZE = width / 6 - 12; // Размер иконки достижения
 
 export const ProfileScreen = ({ navigation }) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [login, setLogin] = useState(null);
 
-    useEffect(async () => {
-        const login = await AsyncStorage.getItem("authToken").then();
-        fetch(`${URL}/profile/${login}`)
-            .then((res) => res.json())
-            .then((data) => {
-                setProfile(data);
-                setLoading(false);
-            })
-            .catch(() => {
-                setLoading(false);
-            });
+    useEffect(() => {
+        (async () => {
+            const login = await AsyncStorage.getItem("authToken");
+            fetch(`${URL}/profile/${login}`)
+                .then((res) => res.json())
+                .then((data) => {
+                    setProfile(data);
+                    setLoading(false);
+                })
+                .catch(() => {
+                    setLoading(false);
+                });
+        })();
     }, []);
 
     const handleLogout = () => {
@@ -38,7 +45,7 @@ export const ProfileScreen = ({ navigation }) => {
             <ActivityIndicator
                 size="large"
                 color="#5833ffff"
-                style={{ flex: 1 }}
+                style={{ flex: 1, justifyContent: "center" }}
             />
         );
     }
@@ -51,20 +58,22 @@ export const ProfileScreen = ({ navigation }) => {
         );
     }
 
+    // Фильтруем достижения, показываем только те, что есть в конфиге
+    const achievementsToShow = profile.achievements.filter(
+        (name) => achievementsConfig[name]
+    );
+
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.header}>Профиль пользователя</Text>
             <View style={styles.card}>
-                {/* ФИО человека */}
                 <Text style={styles.fio}>{profile.fio}</Text>
 
-                {/* Общая информация */}
                 <Text style={styles.login}>
                     Логин в системе:{" "}
                     <Text style={{ fontWeight: "bold" }}>{profile.login}</Text>
                 </Text>
 
-                {/* Контактная информация */}
                 <Text style={styles.login}>
                     Логин в телеграмм:{" "}
                     <Text style={{ fontWeight: "bold" }}>
@@ -72,28 +81,43 @@ export const ProfileScreen = ({ navigation }) => {
                     </Text>
                 </Text>
 
-                {/* ИНформация о бойце */}
                 <Text style={styles.rating}>
                     Рейтинг бойцов:{" "}
                     <Text style={{ color: "#337AFF", fontWeight: "bold" }}>
                         {profile.rating}
                     </Text>
                 </Text>
+
                 <Text style={styles.attendance}>
                     Посещено мероприятий:{" "}
                     <Text style={{ fontWeight: "bold" }}>
                         {profile.attendance}
                     </Text>
                 </Text>
+
                 <Text style={styles.section}>Достижения:</Text>
-                {profile.achievements.length === 0 && (
+                {achievementsToShow.length === 0 ? (
                     <Text>Нет достижений</Text>
+                ) : (
+                    <FlatList
+                        data={achievementsToShow}
+                        keyExtractor={(item) => item}
+                        numColumns={6}
+                        scrollEnabled={false} // Чтобы не конфликтовать с ScrollView
+                        renderItem={({ item }) => (
+                            <View style={styles.achievementItem}>
+                                <Image
+                                    source={achievementsConfig[item]}
+                                    style={styles.achievementImage}
+                                    resizeMode="contain"
+                                />
+                                <Text style={styles.achievementText}>
+                                    {item}
+                                </Text>
+                            </View>
+                        )}
+                    />
                 )}
-                {profile.achievements.map((ach, idx) => (
-                    <Text key={idx} style={styles.achievement}>
-                        {ach}
-                    </Text>
-                ))}
             </View>
             <View style={styles.bottomRow}>
                 <Button
@@ -139,6 +163,19 @@ const styles = StyleSheet.create({
         marginTop: 8,
         marginBottom: 5,
     },
-    achievement: { fontSize: 15, marginLeft: 12, marginBottom: 2 },
+    achievementItem: {
+        alignItems: "center",
+        flex: 1,
+        margin: 6,
+    },
+    achievementImage: {
+        width: ITEM_SIZE,
+        height: ITEM_SIZE,
+    },
+    achievementText: {
+        marginTop: 4,
+        fontSize: 10,
+        textAlign: "center",
+    },
     bottomRow: { width: "98%", maxWidth: 500 },
 });

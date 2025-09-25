@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -7,42 +8,52 @@ import {
     SafeAreaView,
     useWindowDimensions,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { URL } from "../config";
 
 const services = [
     {
-        access_level: "*",
+        access_level: ["админ", "куратор", "боец"],
         label: "Учебные группы",
         color: "#1dff28ff",
         path: "SchoolGroups",
     },
     {
-        access_level: "*",
+        access_level: ["админ", "куратор", "боец"],
         label: "Тесты",
         color: "#42fff2ff",
         path: "Tests",
     },
     {
-        access_level: "0",
+        access_level: ["админ", "куратор", "боец"],
         label: "Домашка",
         color: "#ff041dff",
         path: "Homework",
     },
     {
-        access_level: "0",
+        access_level: ["админ", "куратор", "боец"],
         label: "Достижения",
         color: "#b512aaff",
         path: "SchoolAchive",
     },
     {
-        access_level: "0",
+        access_level: ["админ", "куратор", "боец"],
         label: "Учебные материалы",
         color: "#96b9ffff",
         path: "SchoolMaterial",
+    },
+    {
+        access_level: ["админ", "куратор"],
+        label: "Оценки",
+        color: "#f0ff1dff",
+        path: "Scores",
     },
 ];
 
 export const SchoolMainScreen = ({ navigation }) => {
     const { width } = useWindowDimensions();
+    const [level, setLevel] = useState("боец");
 
     // Максимум 4 карточки в ряд, минимум 2
     // Определяем количество колонок в зависимости от ширины окна
@@ -57,22 +68,48 @@ export const SchoolMainScreen = ({ navigation }) => {
     const cardMargin = 20; // margin*2 слева и справа (10*2)
     const cardWidth = (width - cardMargin * numColumns) / numColumns;
 
+    useEffect(async () => {
+        const login = await AsyncStorage.getItem("authToken").then();
+        try {
+            const response = await fetch(
+                `${URL}/user/access_level?login=${login}`
+            );
+            const data = await response.json();
+
+            if (response.ok) {
+                setLevel(data.access_level);
+                console.log(level);
+            } else {
+                console.warn("Ошибка сервера:", data.error);
+                return null;
+            }
+        } catch (error) {
+            console.error("Ошибка сети:", error);
+            return null;
+        }
+    }, []);
+
     return (
         <SafeAreaView style={styles.flexContainer}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.grid}>
-                    {services.map((s, idx) => (
-                        <TouchableOpacity
-                            key={idx}
-                            style={[
-                                styles.card,
-                                { backgroundColor: s.color, width: cardWidth },
-                            ]}
-                            onPress={() => navigation.navigate(s.path)}
-                        >
-                            <Text style={styles.cardText}>{s.label}</Text>
-                        </TouchableOpacity>
-                    ))}
+                    {services.map((s, idx) =>
+                        s.access_level.includes(level) ? (
+                            <TouchableOpacity
+                                key={idx}
+                                style={[
+                                    styles.card,
+                                    {
+                                        backgroundColor: s.color,
+                                        width: cardWidth,
+                                    },
+                                ]}
+                                onPress={() => navigation.navigate(s.path)}
+                            >
+                                <Text style={styles.cardText}>{s.label}</Text>
+                            </TouchableOpacity>
+                        ) : null
+                    )}
                 </View>
                 <View style={styles.footer}>
                     <Text style={styles.copyright}>

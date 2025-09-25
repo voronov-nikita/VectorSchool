@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -6,9 +6,15 @@ import {
     Dimensions,
     Platform,
     ScrollView,
+    TouchableOpacity,
+    Modal,
+    TextInput,
 } from "react-native";
 import { Calendar, LocaleConfig } from "react-native-calendars";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { URL } from "../config";
 
+// русификация календаря (оставьте как есть)
 // русификация календаря
 LocaleConfig.locales["ru"] = {
     monthNames: [
@@ -53,29 +59,100 @@ LocaleConfig.locales["ru"] = {
 };
 LocaleConfig.defaultLocale = "ru";
 
-// временная хуйня
-const lessonsSchedule = {
-    // "2025-08-31": [
-    //     { time: "9:00 – 10:30", title: "Математика" },
-    //     { time: "11:00 – 12:30", title: "Информатика" },
-    // ],
-    // "2025-08-30": [{ time: "10:00 – 11:30", title: "Физика" }],
-};
-
 export const EventsScreen = () => {
     const getCurrentDateString = () => {
         const d = new Date();
         const year = d.getFullYear();
-        // месяц с ведущим нулем
-        const month = (d.getMonth() + 1).toString().padStart(2, "0"); 
-        // день с ведущим нулем
-        const day = d.getDate().toString().padStart(2, "0"); 
+        const month = (d.getMonth() + 1).toString().padStart(2, "0");
+        const day = d.getDate().toString().padStart(2, "0");
         return `${year}-${month}-${day}`;
     };
 
     const [selectedDate, setSelectedDate] = useState(getCurrentDateString());
     const { width } = Dimensions.get("window");
+    const [level, setLevel] = useState("боец");
+    const [eventsByDate, setEventsByDate] = useState({}); // важно!
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [eventTitle, setEventTitle] = useState("");
+    const [eventDate, setEventDate] = useState(getCurrentDateString());
+    const [startTime, setStartTime] = useState("");
+    const [endTime, setEndTime] = useState("");
     const isMobile = width < 768;
+
+    // Получить уровень доступа пользователя
+    useEffect(() => {
+        (async () => {
+            const login = await AsyncStorage.getItem("authToken");
+            try {
+                const response = await fetch(
+                    `${URL}/user/access_level?login=${login}`
+                );
+                const data = await response.json();
+                if (response.ok) {
+                    setLevel(data.access_level);
+                }
+            } catch (error) {
+                console.error("Ошибка сети:", error);
+            }
+        })();
+    }, []);
+
+    // Парсер событий с сервера
+    const parseEvents = (eventsArray) => {
+        const obj = {};
+        eventsArray.forEach((ev) => {
+            if (!obj[ev.date]) obj[ev.date] = [];
+            obj[ev.date].push(ev);
+        });
+        return obj;
+    };
+
+    // Загрузка событий с сервера
+    const fetchEvents = () => {
+        fetch(`${URL}/events`)
+            .then((res) => res.json())
+            .then((data) => {
+                setEventsByDate(parseEvents(data.events));
+            });
+    };
+
+    useEffect(() => {
+        fetchEvents();
+    }, []);
+
+    // Создание события (только для админа)
+    const createEvent = async () => {
+        const login = await AsyncStorage.getItem("authToken");
+        const body = {
+            title: eventTitle,
+            date: eventDate,
+            start_time: startTime,
+            end_time: endTime,
+        };
+        try {
+            const response = await fetch(`${URL}/events/create`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    login: login, // меняйте на Authorization, если требуется
+                },
+                body: JSON.stringify(body),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setIsModalVisible(false);
+                setEventTitle("");
+                setStartTime("");
+                setEndTime("");
+                setEventDate(selectedDate);
+                fetchEvents();
+            } else {
+                alert("Ошибка: " + (data.error || "unknown"));
+            }
+        } catch (err) {
+            alert("Ошибка сети: " + err.message);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -87,15 +164,19 @@ export const EventsScreen = () => {
                         { flexDirection: isMobile ? "column" : "row" },
                     ]}
                 >
-                    {/* Календарь всегда сверху */}
+                    {/* Календарь */}
                     <Calendar
                         current={selectedDate}
-                        onDayPress={(day) => setSelectedDate(day.dateString)}
+                        onDayPress={(day) => {
+                            setSelectedDate(day.dateString);
+                            setEventDate(day.dateString); // подставляем выбранную дату в форму по умолчанию
+                        }}
                         markedDates={{
                             [selectedDate]: {
                                 selected: true,
                                 selectedColor: "#337AFF",
                             },
+                            // Можно выделять еще даты с событиями тут если нужно
                         }}
                         theme={{
                             todayTextColor: "#337AFF",
@@ -112,8 +193,7 @@ export const EventsScreen = () => {
                         firstDay={1}
                         monthFormat={"MMMM yyyy"}
                     />
-
-                    {/* Расписание */}
+                    {/* События выбранного дня */}
                     <View
                         style={[
                             styles.schedulePanel,
@@ -123,14 +203,18 @@ export const EventsScreen = () => {
                         <Text style={styles.dateText}>
                             {selectedDate.split("-").reverse().join(".")}
                         </Text>
-                        {lessonsSchedule[selectedDate] ? (
-                            lessonsSchedule[selectedDate].map((lesson, idx) => (
+                        {eventsByDate[selectedDate] &&
+                        eventsByDate[selectedDate].length > 0 ? (
+                            eventsByDate[selectedDate].map((ev, idx) => (
                                 <View key={idx} style={styles.lessonCard}>
                                     <Text style={styles.lessonTime}>
-                                        {lesson.time}
+                                        {/* Обычно отображают "18:00–20:00" */}
+                                        {ev.start_time && ev.end_time
+                                            ? `${ev.start_time} – ${ev.end_time}`
+                                            : ""}
                                     </Text>
                                     <Text style={styles.lessonTitle}>
-                                        {lesson.title}
+                                        {ev.title}
                                     </Text>
                                 </View>
                             ))
@@ -144,6 +228,72 @@ export const EventsScreen = () => {
                     </View>
                 </View>
             </ScrollView>
+            {level === "админ" && (
+                <>
+                    <TouchableOpacity
+                        style={styles.fab}
+                        onPress={() => {
+                            setEventDate(selectedDate); // дата по умолчанию — выбранная
+                            setIsModalVisible(true);
+                        }}
+                    >
+                        <Text style={styles.fabText}>+</Text>
+                    </TouchableOpacity>
+                    <Modal
+                        transparent={true}
+                        visible={isModalVisible}
+                        animationType="slide"
+                    >
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalWindow}>
+                                <Text style={styles.modalTitle}>
+                                    Создать мероприятие
+                                </Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Название"
+                                    value={eventTitle}
+                                    onChangeText={setEventTitle}
+                                />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Дата (ГГГГ-ММ-ДД)"
+                                    value={eventDate}
+                                    onChangeText={setEventDate}
+                                />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Время начала (HH:MM)"
+                                    value={startTime}
+                                    onChangeText={setStartTime}
+                                />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Время окончания (HH:MM)"
+                                    value={endTime}
+                                    onChangeText={setEndTime}
+                                />
+                                <TouchableOpacity
+                                    style={styles.modalBtn}
+                                    onPress={createEvent}
+                                >
+                                    <Text style={styles.modalBtnText}>
+                                        Создать мероприятие
+                                    </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.modalClose}
+                                    onPress={() => setIsModalVisible(false)}
+                                >
+                                    <Text style={styles.modalCloseText}>
+                                        Закрыть
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Modal>
+                </>
+            )}
         </View>
     );
 };
@@ -207,5 +357,70 @@ const styles = StyleSheet.create({
     emptyText: {
         color: "#aaa",
         fontSize: 15,
+    },
+    fab: {
+        position: "absolute",
+        right: 24,
+        bottom: 24,
+        backgroundColor: "#337AFF",
+        width: 56,
+        height: 56,
+        borderRadius: 32,
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: "#000",
+        shadowOpacity: 0.19,
+        shadowRadius: 4,
+        zIndex: 99,
+    },
+    fabText: {
+        color: "#fff",
+        fontSize: 36,
+        fontWeight: "bold",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.3)",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    modalWindow: {
+        width: 300,
+        backgroundColor: "#fff",
+        borderRadius: 18,
+        padding: 20,
+        alignItems: "stretch",
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 16,
+        textAlign: "center",
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: "#ddd",
+        borderRadius: 10,
+        marginBottom: 14,
+        padding: 10,
+        fontSize: 16,
+    },
+    modalBtn: {
+        backgroundColor: "#337AFF",
+        borderRadius: 14,
+        padding: 12,
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    modalBtnText: {
+        color: "#fff",
+        fontSize: 16,
+    },
+    modalClose: {
+        alignItems: "center",
+        padding: 6,
+    },
+    modalCloseText: {
+        color: "#337AFF",
     },
 });

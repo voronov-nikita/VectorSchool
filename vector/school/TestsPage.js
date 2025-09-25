@@ -14,33 +14,30 @@ export const TestsScreen = ({ navigation }) => {
     const [tests, setTests] = useState([]);
     const [level, setLevel] = useState("боец");
 
-    useEffect(() => {
-        fetch(`${URL}/tests`)
-            .then((res) => res.json())
-            .then((data) => setTests(data.tests));
+    useEffect(async () => {
+        const login = await AsyncStorage.getItem("authToken").then();
+        try {
+            fetch(`${URL}/tests`)
+                .then((res) => res.json())
+                .then((data) => setTests(data.tests));
 
-        async () => {
-            const login = await AsyncStorage.getItem("authToken").then();
-            console.log(login);
-            try {
-                const response = await fetch(
-                    `${URL}/user/access_level?login=${login}`
-                );
-                const data = await response.json();
+            const response = await fetch(
+                `${URL}/user/access_level?login=${login}`
+            );
+            const data = await response.json();
 
-                console.log(data);
+            console.log(data);
 
-                if (response.ok) {
-                    setLevel(data.access_level);
-                } else {
-                    console.warn("Ошибка сервера:", data.error);
-                    return null;
-                }
-            } catch (error) {
-                console.error("Ошибка сети:", error);
+            if (response.ok) {
+                setLevel(data.access_level);
+            } else {
+                console.warn("Ошибка сервера:", data.error);
                 return null;
             }
-        };
+        } catch (error) {
+            console.error("Ошибка сети:", error);
+            return null;
+        }
     }, []);
 
     return (

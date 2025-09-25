@@ -8,7 +8,6 @@ import os
 application = Flask(__name__)
 CORS(application, origins=["*"])
 
-ACHIEVEMENTS_FOLDER = './achievements_images'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 
@@ -68,49 +67,6 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@application.route('/achievements', methods=['POST'])
-def add_achievement():
-    login = request.headers.get('login')
-    if not login:
-        return jsonify({'error': 'Login header required'}), 400
-
-    # Получаем данные
-    if 'image' not in request.files:
-        return jsonify({'error': 'Image file required'}), 400
-    image = request.files['image']
-    name = request.form.get('name')
-    description = request.form.get('description', '')
-
-    if not image or not name:
-        return jsonify({'error': 'Missing required fields'}), 400
-    if not allowed_file(image.filename):
-        return jsonify({'error': 'Invalid image file type'}), 400
-
-    filename = secure_filename(image.filename)
-    filepath = os.path.join(ACHIEVEMENTS_FOLDER, filename)
-    if not os.path.exists(ACHIEVEMENTS_FOLDER):
-        os.makedirs(ACHIEVEMENTS_FOLDER)
-    image.save(filepath)
-
-    db = get_db()
-    try:
-        # Вставляем в каталог достижений
-        db.execute(
-            "INSERT INTO achievements_catalog (name, description, filename) VALUES (?, ?, ?)",
-            (name, description, filename)
-        )
-        # Привязываем достижение к пользователю, дата - сейчас
-        from datetime import datetime
-        date_obtained = datetime.now().strftime('%Y-%m-%d')
-        db.execute(
-            "INSERT INTO user_achievements (user_login, achievement_name, date_obtained) VALUES (?, ?, ?)",
-            (login, name, date_obtained)
-        )
-        db.commit()
-    except Exception as e:
-        return jsonify({'error': f'Database error: {str(e)}'}), 500
-
-    return jsonify({'result': 'Achievement added'})
 
 
 @application.route('/user/access_level', methods=['GET'])
@@ -284,14 +240,54 @@ def add_test_api():
     return jsonify({'result': 'Test added', 'id': test_id})
 
 
+def is_admin(login):
+    user = get_user_by_login(login)
+    return user and user["access_level"] == "админ"
+
+
+@application.route('/events', methods=['GET'])
+def api_get_events():
+    # ?date=YYYY-MM-DD (необязательный)
+    date = request.args.get('date')
+    events = get_events(date)
+    return jsonify({'events': events})
+
+
+@application.route('/events/create', methods=['POST'])
+def api_create_event():
+    login = request.headers.get('login')
+    # Проверяем права
+    if not login or not is_admin(login):
+        return jsonify({'error': 'Access denied'}), 403
+    data = request.json
+    title = data.get('title')
+    date = data.get('date')
+    start_time = data.get('start_time')
+    end_time = data.get('end_time')
+    if not all([title, date, start_time, end_time]):
+        return jsonify({"error": "Все поля обязательны"}), 400
+    add_event(title, date, start_time, end_time, created_by=login)
+    return jsonify({'result': 'ok'})
+
 @application.route('/achievements', methods=['GET'])
 def get_achievements():
     login = request.headers.get('login')
     if not login:
         return jsonify({'error': 'Login header is required'}), 400
-
     achievements = get_user_achievements(login)
     return jsonify(achievements)
+
+
+def get_user_achievements(login):
+    db = get_db()
+    achievements = db.execute('''
+        SELECT achievement_name AS name, date_obtained AS date
+        FROM user_achievements
+        WHERE user_login = ?
+        ORDER BY date_obtained DESC
+    ''', (login,)).fetchall()
+    return [dict(a) for a in achievements]
+
 
 
 if __name__ == '__main__':

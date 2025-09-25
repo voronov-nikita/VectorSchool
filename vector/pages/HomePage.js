@@ -14,7 +14,7 @@ import { URL } from "../config";
 
 const services = [
     {
-        access_level: ["боец", "админ"],
+        access_level: ["боец", "админ", "куратор"],
         label: "Календарь мероприятий",
         color: "#a9ba48ff",
         path: "Events",
@@ -32,25 +32,25 @@ const services = [
         path: "Profile",
     },
     {
-        access_level: ["боец", "админ"],
+        access_level: ["админ"],
         label: "Статистика",
         color: "#e97900ff",
         path: "Statistics",
     },
     {
-        access_level: ["куратор", "админ", "боец"],
+        access_level: ["админ"],
         label: "Новости",
         color: "#6d5200ff",
         path: "News",
     },
     {
-        access_level: ["боец", "админ"],
+        access_level: [],
         label: "Получение ПГАС",
         color: "#b52a12ff",
         path: "PGAS",
     },
     {
-        access_level: ["админ", "боец"],
+        access_level: [],
         label: "ДОД",
         color: "#e90090ff",
         path: "DOD",
@@ -67,8 +67,7 @@ export const HomeScreen = ({ navigation }) => {
     const { width } = useWindowDimensions();
     const [level, setLevel] = useState("боец");
 
-    useEffect(
-        () => async () => {
+    useEffect(async () => {
             const login = await AsyncStorage.getItem("authToken").then();
             try {
                 const response = await fetch(

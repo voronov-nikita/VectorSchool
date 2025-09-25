@@ -125,6 +125,26 @@ def init_db():
             filename TEXT NOT NULL UNIQUE
         )
     ''')
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            date TEXT NOT NULL, -- YYYY-MM-DD
+            start_time TEXT NOT NULL, -- HH:MM
+            end_time TEXT NOT NULL, -- HH:MM
+            created_by TEXT NOT NULL, -- login создателя, FOREIGN KEY возможно
+            FOREIGN KEY(created_by) REFERENCES users(login)
+        )
+    ''')
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS event_participants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER,
+            user_login TEXT,
+            FOREIGN KEY(event_id) REFERENCES events(id),
+            FOREIGN KEY(user_login) REFERENCES users(login)
+        )
+    ''')
 
     # Сохраняем всю эту хрень
     db.commit()
@@ -435,6 +455,29 @@ def get_user_achievements(login):
         'date': ach['date_obtained'],
         'url': f"/achievements_images/{ach['achievement_name']}"
     } for ach in achievements]
+
+# Далее функции работы с events:
+
+
+def add_event(title, date, start_time, end_time, created_by):
+    db = get_db()
+    db.execute('''
+        INSERT INTO events (title, date, start_time, end_time, created_by)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (title, date, start_time, end_time, created_by))
+    db.commit()
+    return True
+
+
+def get_events(date=None):
+    db = get_db()
+    if date:
+        rows = db.execute(
+            'SELECT * FROM events WHERE date = ? ORDER BY start_time', (date,)).fetchall()
+    else:
+        rows = db.execute(
+            'SELECT * FROM events ORDER BY date, start_time').fetchall()
+    return [dict(r) for r in rows]
 
 
 if __name__ == "__main__":

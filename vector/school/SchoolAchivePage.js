@@ -3,81 +3,129 @@ import {
     View,
     Text,
     Image,
-    ScrollView,
+    FlatList,
     StyleSheet,
-    ActivityIndicator,
     Dimensions,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { URL } from "../config";
+const { width } = Dimensions.get("window");
+const ITEM_SIZE = width / 4 - 16; // Четыре колонки с отступами
 
-const windowWidth = Dimensions.get("window").width;
-const imgSize = (windowWidth - 60) / 3;
+// Отдельный Item для картинки с маской
+const AchievementItem = ({ source, locked }) => (
+    <View style={styles.itemWrapper}>
+        <Image
+            source={source}
+            style={[styles.image, locked && styles.locked]}
+            resizeMode="contain"
+        />
+    </View>
+);
 
-export const SchoolAchiveScreen = ({ login }) => {
-    const [achievements, setAchievements] = useState([]);
-    const [loading, setLoading] = useState(true);
+// Страница со всеми достижениями — с фильтром блокировки
+export const SchoolAchiveScreen = () => {
+    const [userAchievements, setUserAchievements] = useState([]);
+    const [login, setLogin] = useState("");
 
     useEffect(() => {
-        fetch(`${URL}/achievements`, {
-            headers: { login },
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                if (!data.error) {
-                    setAchievements(data);
-                }
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
+        (async () => {
+            const storedLogin = await AsyncStorage.getItem("authToken");
+            setLogin(storedLogin);
+        })();
+    }, []);
+
+    useEffect(() => {
+        if (!login) return;
+        fetchUserAchievements(login)
+            .then((achievements) =>
+                setUserAchievements(achievements.map((a) => a.name))
+            )
+            .catch(() => setUserAchievements([]));
     }, [login]);
 
-    if (loading) {
-        return (
-            <ActivityIndicator
-                size="large"
-                style={{ flex: 1, justifyContent: "center" }}
-            />
-        );
-    }
+    return (
+        <FlatList
+            data={Object.entries(achievementsConfig)}
+            keyExtractor={([name]) => name}
+            numColumns={4}
+            contentContainerStyle={styles.container}
+            renderItem={({ item: [name, source] }) => {
+                const locked = !userAchievements.includes(name);
+                return <AchievementItem source={source} locked={locked} />;
+            }}
+        />
+    );
+};
+
+// Страница с достижениями пользователя (только доступные)
+export const UserAchievementsScreen = () => {
+    const [userAchievements, setUserAchievements] = useState([]);
+    const [login, setLogin] = useState("");
+
+    useEffect(() => {
+        (async () => {
+            const storedLogin = await AsyncStorage.getItem("authToken");
+            setLogin(storedLogin);
+        })();
+    }, []);
+
+    useEffect(() => {
+        if (!login) return;
+        fetchUserAchievements(login)
+            .then((achievements) =>
+                setUserAchievements(achievements.map((a) => a.name))
+            )
+            .catch(() => setUserAchievements([]));
+    }, [login]);
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            {achievements.map((ach, i) => (
-                <View key={i} style={styles.achievementCard}>
-                    <Image
-                        source={{
-                            uri: `${URL}:5000${ach.url}`,
-                        }}
-                        style={styles.image}
-                    />
-                    <Text style={styles.date}>{ach.date}</Text>
-                </View>
-            ))}
-        </ScrollView>
+        <View style={styles.container}>
+            {userAchievements.length === 0 ? (
+                <Text style={styles.messageText}>
+                    У вас пока нет достижений.
+                </Text>
+            ) : (
+                <FlatList
+                    data={userAchievements}
+                    keyExtractor={(name) => name}
+                    numColumns={4}
+                    contentContainerStyle={styles.container}
+                    renderItem={({ item: name }) => {
+                        const source = achievementsConfig[name];
+                        if (!source) return null;
+                        return (
+                            <AchievementItem source={source} locked={false} />
+                        );
+                    }}
+                />
+            )}
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         padding: 10,
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "space-between",
     },
-    achievementCard: {
-        width: imgSize,
-        marginBottom: 15,
+    itemWrapper: {
+        margin: 8,
+        width: ITEM_SIZE,
+        height: ITEM_SIZE,
         alignItems: "center",
+        justifyContent: "center",
     },
     image: {
-        width: imgSize,
-        height: imgSize,
-        borderRadius: 12,
+        width: ITEM_SIZE - 10,
+        height: ITEM_SIZE - 10,
     },
-    date: {
-        marginTop: 5,
-        fontSize: 12,
-        color: "#555",
+    locked: {
+        opacity: 0.3,
+        tintColor: "gray",
+    },
+    messageText: {
+        fontSize: 16,
+        textAlign: "center",
+        marginTop: 30,
     },
 });
