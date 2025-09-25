@@ -24,3 +24,12 @@ export const achievementsConfig = {
     // "100_fights": require(""),
     // добавьте все достижения
 };
+
+export const avatars = {
+    gosha: require("./assets/avatar/gosha.png"),
+    alia: require("./assets/avatar/Alia.jpg"),
+    dania: require("./assets/avatar/Danya.jpg"),
+    leny: require("./assets/avatar/lena.jpg"),
+    anna: require("./assets/avatar/ana.jpg"),
+
+}
