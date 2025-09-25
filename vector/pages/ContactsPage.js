@@ -1,4 +1,3 @@
-import React from "react";
 import {
     ScrollView,
     View,
@@ -9,8 +8,7 @@ import {
     Image,
 } from "react-native";
 
-import { MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
-
+import { FontAwesome } from "@expo/vector-icons";
 import { avatars } from "../config";
 
 export const ContactsScreen = () => {

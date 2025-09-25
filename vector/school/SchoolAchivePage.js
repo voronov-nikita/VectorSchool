@@ -12,6 +12,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width } = Dimensions.get("window");
 const ITEM_SIZE = width / 4 - 16; // Четыре колонки с отступами
 
+// Пример конфигурации достижений
+const achievementsConfig = {
+    first: "",
+    second: "",
+    third: "",
+    // добавьте свои картинки и имена
+};
+
+// Заглушка для получения достижений по токену
+async function fetchUserAchievements(token) {
+    // Здесь должен быть запрос к серверу
+    // Пример ответа:
+    return new Promise((resolve) =>
+        setTimeout(() => resolve([{ name: "first" }, { name: "third" }]), 1000)
+    );
+}
+
 // Отдельный Item для картинки с маской
 const AchievementItem = ({ source, locked }) => (
     <View style={styles.itemWrapper}>
@@ -26,23 +43,23 @@ const AchievementItem = ({ source, locked }) => (
 // Страница со всеми достижениями — с фильтром блокировки
 export const SchoolAchiveScreen = () => {
     const [userAchievements, setUserAchievements] = useState([]);
-    const [login, setLogin] = useState("");
+    const [token, setToken] = useState("");
 
     useEffect(() => {
         (async () => {
-            const storedLogin = await AsyncStorage.getItem("authToken");
-            setLogin(storedLogin);
+            const storedToken = await AsyncStorage.getItem("authToken");
+            setToken(storedToken);
         })();
     }, []);
 
     useEffect(() => {
-        if (!login) return;
-        fetchUserAchievements(login)
+        if (!token) return;
+        fetchUserAchievements(token)
             .then((achievements) =>
                 setUserAchievements(achievements.map((a) => a.name))
             )
             .catch(() => setUserAchievements([]));
-    }, [login]);
+    }, [token]);
 
     return (
         <FlatList
@@ -61,23 +78,23 @@ export const SchoolAchiveScreen = () => {
 // Страница с достижениями пользователя (только доступные)
 export const UserAchievementsScreen = () => {
     const [userAchievements, setUserAchievements] = useState([]);
-    const [login, setLogin] = useState("");
+    const [token, setToken] = useState("");
 
     useEffect(() => {
         (async () => {
-            const storedLogin = await AsyncStorage.getItem("authToken");
-            setLogin(storedLogin);
+            const storedToken = await AsyncStorage.getItem("authToken");
+            setToken(storedToken);
         })();
     }, []);
 
     useEffect(() => {
-        if (!login) return;
-        fetchUserAchievements(login)
+        if (!token) return;
+        fetchUserAchievements(token)
             .then((achievements) =>
                 setUserAchievements(achievements.map((a) => a.name))
             )
             .catch(() => setUserAchievements([]));
-    }, [login]);
+    }, [token]);
 
     return (
         <View style={styles.container}>

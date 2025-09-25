@@ -14,39 +14,45 @@ import { URL } from "../config";
 
 const services = [
     {
+        access_level: ["боец", "админ", "куратор"],
+        label: "Календарь мероприятий",
+        color: "#a9ba48ff",
+        path: "Events",
+    },
+    {
         access_level: ["админ", "куратор", "боец"],
         label: "Учебные группы",
-        color: "#1dff28ff",
+        color: "#0a630eff",
         path: "SchoolGroups",
     },
     {
         access_level: ["админ", "куратор", "боец"],
-        label: "Тесты",
-        color: "#42fff2ff",
+        label: "Домашки",
+        color: "#5a0a6bff",
         path: "Tests",
     },
+    // {
+    //     access_level: ["админ", "куратор", "боец"],
+    //     label: "Домашка",
+    //     color: "#ff041dff",
+    //     path: "Homework",
+    // },
     {
-        access_level: ["админ", "куратор", "боец"],
-        label: "Домашка",
-        color: "#ff041dff",
-        path: "Homework",
-    },
-    {
-        access_level: ["админ", "куратор", "боец"],
+        access_level: ["админ", "куратор", "боец", "училка"],
         label: "Достижения",
-        color: "#b512aaff",
+        color: "#b04429ff",
         path: "SchoolAchive",
     },
+    // {
+    //     access_level: ["админ", "куратор", "боец"],
+    //     label: "Учебные материалы",
+    //     color: "#96b9ffff",
+    //     path: "SchoolMaterial",
+    // },
     {
-        access_level: ["админ", "куратор", "боец"],
-        label: "Учебные материалы",
-        color: "#96b9ffff",
-        path: "SchoolMaterial",
-    },
-    {
-        access_level: ["админ", "куратор"],
+        access_level: ["админ"],
         label: "Оценки",
-        color: "#f0ff1dff",
+        color: "#1069a9ff",
         path: "Scores",
     },
 ];
@@ -113,8 +119,7 @@ export const SchoolMainScreen = ({ navigation }) => {
                 </View>
                 <View style={styles.footer}>
                     <Text style={styles.copyright}>
-                        © 2025 МИРЭА – Российский технологический университет
-                        {"\n"}Профориентационный отряд "Вектор"
+                        © 2025 Профориентационный отряд РТУ МИРЭА «Вектор»
                     </Text>
                 </View>
             </ScrollView>
@@ -147,7 +152,7 @@ const styles = StyleSheet.create({
         height: 100,
         borderRadius: 20,
         margin: 12,
-        justifyContent: "flex-end",
+        justifyContent: "center",
         padding: 20,
         shadowColor: "#000",
         shadowOpacity: 0.14,
@@ -155,8 +160,9 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     cardText: {
+        textAlign: "center",
         color: "#fff",
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: "500",
     },
     footer: {

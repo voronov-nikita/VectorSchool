@@ -22,7 +22,7 @@ const services = [
     {
         access_level: ["боец", "админ"],
         label: "Инструкция",
-        color: "#8a8a8aff",
+        color: "#e97900ff",
         path: "Instruction",
     },
     {
@@ -33,14 +33,14 @@ const services = [
     },
     {
         access_level: ["админ"],
-        label: "Статистика",
-        color: "#e97900ff",
-        path: "Statistics",
+        label: "Контакты",
+        color: "#8a8a8aff",
+        path: "Contacts",
     },
     {
         access_level: ["админ"],
         label: "Новости",
-        color: "#6d5200ff",
+        color: "#6d0057ff",
         path: "News",
     },
     {
@@ -68,27 +68,25 @@ export const HomeScreen = ({ navigation }) => {
     const [level, setLevel] = useState("боец");
 
     useEffect(async () => {
-            const login = await AsyncStorage.getItem("authToken").then();
-            try {
-                const response = await fetch(
-                    `${URL}/user/access_level?login=${login}`
-                );
-                const data = await response.json();
+        const login = await AsyncStorage.getItem("authToken").then();
+        try {
+            const response = await fetch(
+                `${URL}/user/access_level?login=${login}`
+            );
+            const data = await response.json();
 
-                if (response.ok) {
-                    setLevel(data.access_level);
-                    console.log(level);
-                } else {
-                    console.warn("Ошибка сервера:", data.error);
-                    return null;
-                }
-            } catch (error) {
-                console.error("Ошибка сети:", error);
+            if (response.ok) {
+                setLevel(data.access_level);
+                console.log(level);
+            } else {
+                console.warn("Ошибка сервера:", data.error);
                 return null;
             }
-        },
-        []
-    );
+        } catch (error) {
+            console.error("Ошибка сети:", error);
+            return null;
+        }
+    }, []);
 
     // Максимум 4 карточки в ряд, минимум 2
     // Определяем количество колонок в зависимости от ширины окна
@@ -127,8 +125,7 @@ export const HomeScreen = ({ navigation }) => {
                 </View>
                 <View style={styles.footer}>
                     <Text style={styles.copyright}>
-                        © 2025 МИРЭА – Российский технологический университет
-                        {"\n"}Профориентационный отряд "Вектор"
+                        © 2025 Профориентационный отряд РТУ МИРЭА «Вектор»
                     </Text>
                 </View>
             </ScrollView>
@@ -156,7 +153,7 @@ const styles = StyleSheet.create({
         height: 100,
         borderRadius: 20,
         margin: 12,
-        justifyContent: "flex-end",
+        justifyContent: "center",
         padding: 20,
         shadowColor: "#000",
         shadowOpacity: 0.14,
@@ -169,6 +166,8 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "500",
+        textAlign: "center",
+        justifyContent: "center",
     },
     footer: {
         position: "absolute",

@@ -71,7 +71,6 @@ def allowed_file(filename):
 
 @application.route('/user/access_level', methods=['GET'])
 def get_user_access_level():
-    print("\n\n\n\n")
     login = request.args.get('login')
     if not login:
         return jsonify({"error": "Missing 'login' parameter"}), 400

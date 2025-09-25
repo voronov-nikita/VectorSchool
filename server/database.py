@@ -375,10 +375,6 @@ def get_group_journal(group_id):
     }
 
 
-def can_edit_journal(user):
-    return user['access_level'] in ('куратор', 'админ')
-
-
 # Tests
 
 def add_test_with_questions(test_data):
@@ -457,7 +453,6 @@ def get_user_achievements(login):
     } for ach in achievements]
 
 # Далее функции работы с events:
-
 
 def add_event(title, date, start_time, end_time, created_by):
     db = get_db()

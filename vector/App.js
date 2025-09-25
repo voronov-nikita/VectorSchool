@@ -64,9 +64,9 @@ export default function App() {
                     <Drawer.Screen
                         name="CreateTest"
                         options={{
-                            headerTitle: 'Создание нового теста',
+                            headerTitle: "Создание нового теста",
                             headerShown: true,
-                            headerLeft: () => <BackButton adress="Tests"/>,
+                            headerLeft: () => <BackButton adress="Tests" />,
                             drawerItemStyle: { display: "none" },
                         }}
                         component={CreateTestScreen}
@@ -76,7 +76,9 @@ export default function App() {
                         options={{
                             headerTitle: "Группы",
                             headerShown: true,
-                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            headerLeft: () => (
+                                <BackButton adress="SchoolMain" />
+                            ),
                             drawerItemStyle: { display: "none" },
                         }}
                         component={SchoolGroupsScreen}
@@ -96,7 +98,9 @@ export default function App() {
                         options={{
                             headerTitle: "Тесты",
                             headerShown: true,
-                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            headerLeft: () => (
+                                <BackButton adress="SchoolMain" />
+                            ),
                             drawerItemStyle: { display: "none" },
                         }}
                         component={TestsScreen}
@@ -106,7 +110,9 @@ export default function App() {
                         options={{
                             headerTitle: "Домашняя работа",
                             headerShown: true,
-                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            headerLeft: () => (
+                                <BackButton adress="SchoolMain" />
+                            ),
                             drawerItemStyle: { display: "none" },
                         }}
                         component={HomeworkScreen}
@@ -116,7 +122,7 @@ export default function App() {
                         options={{
                             headerTitle: "Тестирование",
                             headerShown: true,
-                            headerLeft: () => <BackButton adress="Tests"/>,
+                            headerLeft: () => <BackButton adress="Tests" />,
                             drawerItemStyle: { display: "none" },
                         }}
                         component={TakeTestScreen}
@@ -125,7 +131,9 @@ export default function App() {
                         name="SchoolOneGroup"
                         options={{
                             headerTitle: "Список группы",
-                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            headerLeft: () => (
+                                <BackButton adress="SchoolMain" />
+                            ),
                             drawerItemStyle: { display: "none" },
                         }}
                         component={SchoolOneGroupScreen}
@@ -134,7 +142,9 @@ export default function App() {
                         name="SchoolAchive"
                         options={{
                             headerTitle: "Достижения",
-                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            headerLeft: () => (
+                                <BackButton adress="SchoolMain" />
+                            ),
                             drawerItemStyle: { display: "none" },
                         }}
                         component={SchoolAchiveScreen}
@@ -202,6 +212,7 @@ export default function App() {
                         options={{
                             title: "Статистика",
                             headerTitleAlign: "center",
+                            drawerItemStyle: { display: "none" },
                         }}
                         component={StatisticsScreen}
                     />
@@ -215,7 +226,11 @@ export default function App() {
                     />
                     <Drawer.Screen
                         name="PGAS"
-                        options={{ title: "ПГАС", headerTitleAlign: "center" }}
+                        options={{
+                            title: "ПГАС",
+                            headerTitleAlign: "center",
+                            drawerItemStyle: { display: "none" },
+                        }}
                         component={PGASScreen}
                     />
 

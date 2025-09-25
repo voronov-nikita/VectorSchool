@@ -208,13 +208,13 @@ export const EventsScreen = () => {
                             eventsByDate[selectedDate].map((ev, idx) => (
                                 <View key={idx} style={styles.lessonCard}>
                                     <Text style={styles.lessonTime}>
+                                        {ev.title} {`(В-78)`}
+                                    </Text>
+                                    <Text style={styles.lessonTitle}>
                                         {/* Обычно отображают "18:00–20:00" */}
                                         {ev.start_time && ev.end_time
                                             ? `${ev.start_time} – ${ev.end_time}`
                                             : ""}
-                                    </Text>
-                                    <Text style={styles.lessonTitle}>
-                                        {ev.title}
                                     </Text>
                                 </View>
                             ))
