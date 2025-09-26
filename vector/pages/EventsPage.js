@@ -9,13 +9,14 @@ import {
     TouchableOpacity,
     Modal,
     TextInput,
+    Alert,
 } from "react-native";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
 import { URL } from "../config";
 
-// русификация календаря (оставьте как есть)
-// русификация календаря
+// Русификация календаря
 LocaleConfig.locales["ru"] = {
     monthNames: [
         "Январь",
@@ -60,6 +61,7 @@ LocaleConfig.locales["ru"] = {
 LocaleConfig.defaultLocale = "ru";
 
 export const EventsScreen = () => {
+    const navigation = useNavigation();
     const getCurrentDateString = () => {
         const d = new Date();
         const year = d.getFullYear();
@@ -71,15 +73,17 @@ export const EventsScreen = () => {
     const [selectedDate, setSelectedDate] = useState(getCurrentDateString());
     const { width } = Dimensions.get("window");
     const [level, setLevel] = useState("боец");
-    const [eventsByDate, setEventsByDate] = useState({}); // важно!
+    const [eventsByDate, setEventsByDate] = useState({});
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [eventTitle, setEventTitle] = useState("");
     const [eventDate, setEventDate] = useState(getCurrentDateString());
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("");
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [editData, setEditData] = useState(null);
+
     const isMobile = width < 768;
 
-    // Получить уровень доступа пользователя
     useEffect(() => {
         (async () => {
             const login = await AsyncStorage.getItem("authToken");
@@ -88,16 +92,13 @@ export const EventsScreen = () => {
                     `${URL}/user/access_level?login=${login}`
                 );
                 const data = await response.json();
-                if (response.ok) {
-                    setLevel(data.access_level);
-                }
+                if (response.ok) setLevel(data.access_level);
             } catch (error) {
                 console.error("Ошибка сети:", error);
             }
         })();
     }, []);
 
-    // Парсер событий с сервера
     const parseEvents = (eventsArray) => {
         const obj = {};
         eventsArray.forEach((ev) => {
@@ -107,7 +108,6 @@ export const EventsScreen = () => {
         return obj;
     };
 
-    // Загрузка событий с сервера
     const fetchEvents = () => {
         fetch(`${URL}/events`)
             .then((res) => res.json())
@@ -120,7 +120,7 @@ export const EventsScreen = () => {
         fetchEvents();
     }, []);
 
-    // Создание события (только для админа)
+    // Создание
     const createEvent = async () => {
         const login = await AsyncStorage.getItem("authToken");
         const body = {
@@ -134,7 +134,7 @@ export const EventsScreen = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    login: login, // меняйте на Authorization, если требуется
+                    login: login,
                 },
                 body: JSON.stringify(body),
             });
@@ -147,11 +147,59 @@ export const EventsScreen = () => {
                 setEventDate(selectedDate);
                 fetchEvents();
             } else {
-                alert("Ошибка: " + (data.error || "unknown"));
+                Alert.alert("Ошибка", data.error || "unknown");
             }
         } catch (err) {
-            alert("Ошибка сети: " + err.message);
+            Alert.alert("Ошибка сети", err.message);
         }
+    };
+
+    // Удаление
+    const handleDelete = async (id) => {
+        const login = await AsyncStorage.getItem("authToken");
+        Alert.alert("Удалить мероприятие?", "Вы уверены?", [
+            { text: "Отмена", style: "cancel" },
+            {
+                text: "Удалить",
+                style: "destructive",
+                onPress: async () => {
+                    await fetch(`${URL}/events/${id}`, {
+                        method: "DELETE",
+                        headers: { login },
+                    });
+                    fetchEvents();
+                },
+            },
+        ]);
+    };
+
+    // Редактирование
+    const openEditModal = (ev) => {
+        setEditData({
+            id: ev.id,
+            title: ev.title,
+            start_time: ev.start_time || "",
+            end_time: ev.end_time || "",
+            date: ev.date,
+        });
+        setEditModalVisible(true);
+    };
+
+    const handleEditSave = async () => {
+        const login = await AsyncStorage.getItem("authToken");
+        await fetch(`${URL}/events/${editData.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", login },
+            body: JSON.stringify({
+                title: editData.title,
+                start_time: editData.start_time,
+                end_time: editData.end_time,
+                date: editData.date,
+            }),
+        });
+        setEditModalVisible(false);
+        setEditData(null);
+        fetchEvents();
     };
 
     return (
@@ -164,19 +212,17 @@ export const EventsScreen = () => {
                         { flexDirection: isMobile ? "column" : "row" },
                     ]}
                 >
-                    {/* Календарь */}
                     <Calendar
                         current={selectedDate}
                         onDayPress={(day) => {
                             setSelectedDate(day.dateString);
-                            setEventDate(day.dateString); // подставляем выбранную дату в форму по умолчанию
+                            setEventDate(day.dateString);
                         }}
                         markedDates={{
                             [selectedDate]: {
                                 selected: true,
                                 selectedColor: "#337AFF",
                             },
-                            // Можно выделять еще даты с событиями тут если нужно
                         }}
                         theme={{
                             todayTextColor: "#337AFF",
@@ -193,7 +239,6 @@ export const EventsScreen = () => {
                         firstDay={1}
                         monthFormat={"MMMM yyyy"}
                     />
-                    {/* События выбранного дня */}
                     <View
                         style={[
                             styles.schedulePanel,
@@ -207,15 +252,50 @@ export const EventsScreen = () => {
                         eventsByDate[selectedDate].length > 0 ? (
                             eventsByDate[selectedDate].map((ev, idx) => (
                                 <View key={idx} style={styles.lessonCard}>
-                                    <Text style={styles.lessonTime}>
-                                        {ev.title} {`(В-78)`}
-                                    </Text>
-                                    <Text style={styles.lessonTitle}>
-                                        {/* Обычно отображают "18:00–20:00" */}
-                                        {ev.start_time && ev.end_time
-                                            ? `${ev.start_time} – ${ev.end_time}`
-                                            : ""}
-                                    </Text>
+                                    <TouchableOpacity
+                                        style={{ flex: 1 }}
+                                        onPress={() =>
+                                            navigation.navigate("Attendance", {
+                                                eventId: ev.id,
+                                            })
+                                        }
+                                    >
+                                        <Text style={styles.lessonTime}>
+                                            {ev.title} (В-78)
+                                        </Text>
+                                        <Text style={styles.lessonTitle}>
+                                            {ev.start_time && ev.end_time
+                                                ? `${ev.start_time} – ${ev.end_time}`
+                                                : ""}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    {(level === "админ" ||
+                                        level === "куратор") && (
+                                        <View style={styles.buttonRow}>
+                                            <TouchableOpacity
+                                                style={styles.editBtn}
+                                                onPress={() =>
+                                                    openEditModal(ev)
+                                                }
+                                            >
+                                                <Text
+                                                    style={styles.editBtnText}
+                                                >
+                                                    ✎
+                                                </Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.delBtn}
+                                                onPress={() =>
+                                                    handleDelete(ev.id)
+                                                }
+                                            >
+                                                <Text style={styles.delBtnText}>
+                                                    🗑
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
                                 </View>
                             ))
                         ) : (
@@ -228,21 +308,24 @@ export const EventsScreen = () => {
                     </View>
                 </View>
             </ScrollView>
-            {level === "админ" && (
+
+            {(level === "админ" || level === "куратор") && (
                 <>
                     <TouchableOpacity
                         style={styles.fab}
                         onPress={() => {
-                            setEventDate(selectedDate); // дата по умолчанию — выбранная
+                            setEventDate(selectedDate);
                             setIsModalVisible(true);
                         }}
                     >
                         <Text style={styles.fabText}>+</Text>
                     </TouchableOpacity>
+                    {/* Модалка создания */}
                     <Modal
                         transparent={true}
                         visible={isModalVisible}
                         animationType="slide"
+                        onRequestClose={() => setIsModalVisible(false)}
                     >
                         <View style={styles.modalOverlay}>
                             <View style={styles.modalWindow}>
@@ -284,6 +367,81 @@ export const EventsScreen = () => {
                                 <TouchableOpacity
                                     style={styles.modalClose}
                                     onPress={() => setIsModalVisible(false)}
+                                >
+                                    <Text style={styles.modalCloseText}>
+                                        Закрыть
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Modal>
+                    {/* Модалка редактирования */}
+                    <Modal
+                        transparent={true}
+                        visible={editModalVisible}
+                        animationType="slide"
+                        onRequestClose={() => setEditModalVisible(false)}
+                    >
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalWindow}>
+                                <Text style={styles.modalTitle}>
+                                    Редактировать мероприятие
+                                </Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Название"
+                                    value={editData?.title || ""}
+                                    onChangeText={(txt) =>
+                                        setEditData((prev) => ({
+                                            ...prev,
+                                            title: txt,
+                                        }))
+                                    }
+                                />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Дата (ГГГГ-ММ-ДД)"
+                                    value={editData?.date || ""}
+                                    onChangeText={(txt) =>
+                                        setEditData((prev) => ({
+                                            ...prev,
+                                            date: txt,
+                                        }))
+                                    }
+                                />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Время начала (HH:MM)"
+                                    value={editData?.start_time || ""}
+                                    onChangeText={(txt) =>
+                                        setEditData((prev) => ({
+                                            ...prev,
+                                            start_time: txt,
+                                        }))
+                                    }
+                                />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Время окончания (HH:MM)"
+                                    value={editData?.end_time || ""}
+                                    onChangeText={(txt) =>
+                                        setEditData((prev) => ({
+                                            ...prev,
+                                            end_time: txt,
+                                        }))
+                                    }
+                                />
+                                <TouchableOpacity
+                                    style={styles.modalBtn}
+                                    onPress={handleEditSave}
+                                >
+                                    <Text style={styles.modalBtnText}>
+                                        Сохранить изменения
+                                    </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.modalClose}
+                                    onPress={() => setEditModalVisible(false)}
                                 >
                                     <Text style={styles.modalCloseText}>
                                         Закрыть
@@ -339,6 +497,8 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         marginBottom: 10,
         padding: 12,
+        flexDirection: "row",
+        alignItems: "center",
     },
     lessonTime: {
         fontSize: 15,
@@ -422,5 +582,27 @@ const styles = StyleSheet.create({
     },
     modalCloseText: {
         color: "#337AFF",
+    },
+    buttonRow: {
+        flexDirection: "row",
+        marginLeft: 8,
+    },
+    editBtn: {
+        padding: 8,
+        backgroundColor: "#ffdd57",
+        borderRadius: 8,
+        marginRight: 8,
+    },
+    delBtn: {
+        padding: 8,
+        backgroundColor: "#ff5757",
+        borderRadius: 8,
+    },
+    editBtnText: {
+        fontSize: 18,
+    },
+    delBtnText: {
+        fontSize: 18,
+        color: "#fff",
     },
 });

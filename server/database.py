@@ -3,7 +3,7 @@ from flask import g
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
-# DATABASE = 'journal.db'
+# DATABASE = 'journal.db'   
 DATABASE = "./users.db"
 
 # ---- DB connection and setup ----
@@ -144,6 +144,17 @@ def init_db():
             FOREIGN KEY(event_id) REFERENCES events(id),
             FOREIGN KEY(user_login) REFERENCES users(login)
         )
+    ''')
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS event_attendance (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER,
+            user_login TEXT,
+            attended INTEGER DEFAULT 0,
+            UNIQUE(event_id, user_login),
+            FOREIGN KEY(event_id) REFERENCES events(id),
+            FOREIGN KEY(user_login) REFERENCES users(login)
+        );
     ''')
 
     # Сохраняем всю эту хрень
@@ -453,6 +464,7 @@ def get_user_achievements(login):
     } for ach in achievements]
 
 # Далее функции работы с events:
+
 
 def add_event(title, date, start_time, end_time, created_by):
     db = get_db()

@@ -1,4 +1,4 @@
-from server.database import add_user
+from database import add_user
 from main import application
 
 def add_test_users():
@@ -12,7 +12,7 @@ def add_test_users():
             'phone': '1234567890',
             'group_name': 'Группа 1',
             'birth_date': '1990-01-01',
-            'access_level': 'боец',
+            'access_level': 'админ',
             'rating': 28.5,
             'attendance': 14,
             'achievements': '1) Победа на олимпиаде\n2) Лучший студент года'
@@ -286,4 +286,4 @@ if __name__ == "__main__":
       add_test_users()
       add_admin()
       fill_demo_data()
-      insert_test_achievements()
+      # insert_test_achievements()

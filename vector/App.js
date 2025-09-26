@@ -34,6 +34,7 @@ import { SchoolGroupsScreen } from "./school/GroupsPage";
 import { HomeworkScreen } from "./school/HomeworkPage";
 import { TakeTestScreen } from "./school/TakeTestPage";
 import { TestsScreen } from "./school/TestsPage";
+import { AttendanceScreen } from "./pages/AttendancePage";
 
 // Создаем конфигуратор Drawer и Stack
 const Drawer = createDrawerNavigator();
@@ -186,7 +187,7 @@ export default function App() {
                         name="SchoolMain"
                         options={{
                             headerTitle: "Школа Вектора",
-                            headerLeft: () => <BackButton />,
+                            headerLeft: () => <BackButton adress="Home"/>,
                             drawerItemStyle: { display: "none" },
                         }}
                         component={SchoolMainScreen}
@@ -223,6 +224,16 @@ export default function App() {
                             headerTitleAlign: "center",
                         }}
                         component={EventsScreen}
+                    />
+                    <Drawer.Screen
+                        name="Attendance"
+                        options={{
+                            title: "Посещения",
+                            headerTitleAlign: "center",
+                            headerLeft: () => <BackButton adress="Events"/>,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={AttendanceScreen}
                     />
                     <Drawer.Screen
                         name="PGAS"

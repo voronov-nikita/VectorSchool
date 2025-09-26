@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 from database import *
 from werkzeug.utils import secure_filename
@@ -6,9 +6,10 @@ import os
 # from admin.app import index
 
 application = Flask(__name__)
-CORS(application, origins=["*"])
+CORS(application, origins=["*"], methods=["GET", "POST",
+     "PATCH", "DELETE", "OPTIONS"], supports_credentials=True)
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+# ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 
 @application.before_request
@@ -65,8 +66,6 @@ def login():
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 
 
 @application.route('/user/access_level', methods=['GET'])
@@ -268,6 +267,99 @@ def api_create_event():
     add_event(title, date, start_time, end_time, created_by=login)
     return jsonify({'result': 'ok'})
 
+
+@application.route('/events/<int:event_id>', methods=['DELETE'])
+def delete_event(event_id):
+    login = request.headers.get('login')
+    # Проверка уровня доступа
+    user = get_user_by_login(login)
+    if not user or user['access_level'] not in ('админ', 'куратор'):
+        return jsonify({'error': 'Access denied'}), 403
+    db = get_db()
+    db.execute('DELETE FROM events WHERE id=?', (event_id,))
+    db.commit()
+    return jsonify({'result': 'deleted'})
+
+
+@application.route('/events/<int:event_id>', methods=['PATCH'])
+def edit_event(event_id):
+    login = request.headers.get('login')
+    user = get_user_by_login(login)
+    if not user or user['access_level'] not in ('админ', 'куратор'):
+        return jsonify({'error': 'Access denied'}), 403
+    data = request.json
+    fields = []
+    values = []
+    for k in ['title', 'start_time', 'end_time', 'date']:
+        if k in data:
+            fields.append(f"{k}=?")
+            values.append(data[k])
+    values.append(event_id)
+    if fields:
+        db = get_db()
+        db.execute(f'UPDATE events SET {", ".join(fields)} WHERE id=?', values)
+        db.commit()
+        return jsonify({'result': 'updated'})
+    return jsonify({'error': 'No data'}), 400
+
+
+@application.route('/events/<int:event_id>', methods=['GET'])
+def get_event_info(event_id):
+    db = get_db()
+    ev = db.execute(
+        'SELECT id, title, date, start_time, end_time, created_by FROM events WHERE id=?',
+        (event_id,)
+    ).fetchone()
+    if ev is None:
+        return jsonify({'error': 'Событие не найдено'}), 404
+    return jsonify(dict(ev))
+
+
+@application.route('/event/<int:event_id>/participants', methods=['GET'])
+def get_event_participants(event_id):
+    db = get_db()
+    rows = db.execute('''
+        SELECT u.login, u.fio, u.access_level, IFNULL(ea.attended, 0) AS attended
+        FROM event_participants ep
+        JOIN users u ON ep.user_login = u.login
+        LEFT JOIN event_attendance ea ON ea.event_id = ep.event_id AND ea.user_login = u.login
+        WHERE ep.event_id = ?
+    ''', (event_id,))
+    participants = [dict(r) for r in rows]
+    return jsonify({'participants': participants})
+
+
+@application.route(
+    '/event/<int:event_id>/participants/<login>/attendance', methods=['POST', 'OPTIONS'])
+def set_event_attendance(event_id, login):
+    # Обработка OPTIONS preflight
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        response.headers.add(
+            "Access-Control-Allow-Headers", "Content-Type, login")
+        return response
+
+    # admin_login = request.headers.get('login_admin')
+    # admin_user = get_user_by_login(admin_login)
+    # if not admin_user or admin_user['access_level'] not in ('админ', 'куратор'):
+    #     return jsonify({'error': 'Access denied'}), 403
+
+    status = request.json.get('attended')
+    print(f"\n\n{status}\n\n")
+    db = get_db()
+    # Вставка или обновление записи посещения
+    db.execute(
+        'INSERT OR REPLACE INTO event_attendance (event_id, user_login, attended) VALUES (?, ?, ?)',
+        (event_id, login, int(bool(status)))
+    )
+
+    db.commit()
+
+    return jsonify({'result': 'ok'})
+
+
 @application.route('/achievements', methods=['GET'])
 def get_achievements():
     login = request.headers.get('login')
@@ -286,7 +378,6 @@ def get_user_achievements(login):
         ORDER BY date_obtained DESC
     ''', (login,)).fetchall()
     return [dict(a) for a in achievements]
-
 
 
 if __name__ == '__main__':
