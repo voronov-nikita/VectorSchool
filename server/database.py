@@ -3,7 +3,7 @@ from flask import g
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
-# DATABASE = 'journal.db'   
+# DATABASE = 'journal.db'
 DATABASE = "./users.db"
 
 # ---- DB connection and setup ----
@@ -132,9 +132,11 @@ def init_db():
             date TEXT NOT NULL, -- YYYY-MM-DD
             start_time TEXT NOT NULL, -- HH:MM
             end_time TEXT NOT NULL, -- HH:MM
-            created_by TEXT NOT NULL, -- login создателя, FOREIGN KEY возможно
+            auditorium TEXT DEFAULT '-',  -- новое поле аудитории
+            created_by TEXT NOT NULL, -- login создателя
             FOREIGN KEY(created_by) REFERENCES users(login)
         )
+
     ''')
     db.execute('''
         CREATE TABLE IF NOT EXISTS event_participants (
@@ -466,12 +468,12 @@ def get_user_achievements(login):
 # Далее функции работы с events:
 
 
-def add_event(title, date, start_time, end_time, created_by):
+def add_event(title, date, start_time, end_time, auditorium, created_by):
     db = get_db()
     db.execute('''
-        INSERT INTO events (title, date, start_time, end_time, created_by)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (title, date, start_time, end_time, created_by))
+        INSERT INTO events (title, date, start_time, end_time, auditorium, created_by)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (title, date, start_time, end_time, auditorium, created_by))
     db.commit()
     return True
 
@@ -485,6 +487,36 @@ def get_events(date=None):
         rows = db.execute(
             'SELECT * FROM events ORDER BY date, start_time').fetchall()
     return [dict(r) for r in rows]
+
+
+def edit_event(event_id, title=None, start_time=None, end_time=None, auditorium=None, date=None):
+    db = get_db()
+    fields = []
+    values = []
+
+    if title is not None:
+        fields.append("title=?")
+        values.append(title)
+    if start_time is not None:
+        fields.append("start_time=?")
+        values.append(start_time)
+    if end_time is not None:
+        fields.append("end_time=?")
+        values.append(end_time)
+    if auditorium is not None:
+        fields.append("auditorium=?")
+        values.append(auditorium)
+    if date is not None:
+        fields.append("date=?")
+        values.append(date)
+
+    values.append(event_id)
+
+    if fields:
+        db.execute(f'UPDATE events SET {", ".join(fields)} WHERE id=?', values)
+        db.commit()
+        return True
+    return False
 
 
 if __name__ == "__main__":

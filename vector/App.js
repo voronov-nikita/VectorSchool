@@ -154,7 +154,7 @@ export default function App() {
                         name="Home"
                         options={{
                             title: "Главная",
-                            headerRight: () => <BellButton />,
+                            // headerRight: () => <BellButton />,
                             headerTitleAlign: "center",
                         }}
                         component={HomeScreen}
@@ -164,6 +164,7 @@ export default function App() {
                         options={{
                             title: "Новости",
                             headerTitleAlign: "center",
+                            drawerItemStyle: { display: "none" },
                         }}
                         component={NewsScreen}
                     />
@@ -187,7 +188,7 @@ export default function App() {
                         name="SchoolMain"
                         options={{
                             headerTitle: "Школа Вектора",
-                            headerLeft: () => <BackButton adress="Home"/>,
+                            headerLeft: () => <BackButton adress="Home" />,
                             drawerItemStyle: { display: "none" },
                         }}
                         component={SchoolMainScreen}
@@ -230,7 +231,7 @@ export default function App() {
                         options={{
                             title: "Посещения",
                             headerTitleAlign: "center",
-                            headerLeft: () => <BackButton adress="Events"/>,
+                            headerLeft: () => <BackButton adress="Events" />,
                             drawerItemStyle: { display: "none" },
                         }}
                         component={AttendanceScreen}

@@ -32,10 +32,10 @@ const services = [
         path: "Profile",
     },
     {
-        access_level: ["админ"],
+        access_level: ["админ", "боец", "куратор"],
         label: "Контакты",
         color: "#8a8a8aff",
-        path: "Contacts",
+        path: "Contacts",   
     },
     {
         access_level: ["админ"],

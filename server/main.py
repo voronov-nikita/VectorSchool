@@ -9,8 +9,6 @@ application = Flask(__name__)
 CORS(application, origins=["*"], methods=["GET", "POST",
      "PATCH", "DELETE", "OPTIONS"], supports_credentials=True)
 
-# ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
 
 @application.before_request
 def before_request():
@@ -254,17 +252,17 @@ def api_get_events():
 @application.route('/events/create', methods=['POST'])
 def api_create_event():
     login = request.headers.get('login')
-    # Проверяем права
-    if not login or not is_admin(login):
-        return jsonify({'error': 'Access denied'}), 403
+    # ...проверка доступа
     data = request.json
     title = data.get('title')
     date = data.get('date')
     start_time = data.get('start_time')
     end_time = data.get('end_time')
+    auditorium = data.get('auditorium', '-')   # по умолчанию '-'
+
     if not all([title, date, start_time, end_time]):
         return jsonify({"error": "Все поля обязательны"}), 400
-    add_event(title, date, start_time, end_time, created_by=login)
+    add_event(title, date, start_time, end_time, auditorium, created_by=login)
     return jsonify({'result': 'ok'})
 
 
@@ -319,7 +317,7 @@ def get_event_info(event_id):
 def get_event_participants(event_id):
     db = get_db()
     rows = db.execute('''
-        SELECT u.login, u.fio, u.access_level, IFNULL(ea.attended, 0) AS attended
+        SELECT u.login, u.fio, u.access_level, u.group_name, IFNULL(ea.attended, 0) AS attended
         FROM event_participants ep
         JOIN users u ON ep.user_login = u.login
         LEFT JOIN event_attendance ea ON ea.event_id = ep.event_id AND ea.user_login = u.login

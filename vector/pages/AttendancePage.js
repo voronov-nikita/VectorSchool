@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, Switch } from "react-native";
+import { View, Text, StyleSheet, SectionList, Switch } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { URL } from "../config";
@@ -10,6 +10,7 @@ export const AttendanceScreen = ({ route }) => {
     const [users, setUsers] = useState([]);
     const [level, setLevel] = useState("боец");
     const [attendance, setAttendance] = useState({});
+    const [sections, setSections] = useState([]);
 
     useEffect(() => {
         // Получаем инфо о событии
@@ -20,7 +21,20 @@ export const AttendanceScreen = ({ route }) => {
         // Получаем список пользователей
         fetch(`${URL}/users`)
             .then((res) => res.json())
-            .then((data) => setUsers(data.fighters));
+            .then((data) => {
+                console.log(data);
+                const groupsMap = {};
+                data.fighters.forEach((user) => {
+                    const group = user.group_name || "Без группы";
+                    if (!groupsMap[group]) groupsMap[group] = [];
+                    groupsMap[group].push(user);
+                });
+                const sectionsArray = Object.keys(groupsMap).map((group) => ({
+                    title: group,
+                    data: groupsMap[group],
+                }));
+                setSections(sectionsArray);
+            });
 
         // Получаем уровень доступа
         AsyncStorage.getItem("authToken")
@@ -50,11 +64,12 @@ export const AttendanceScreen = ({ route }) => {
                     {event.date} {event.start_time}-{event.end_time}
                 </Text>
                 <Text style={styles.headerRoom}>
-                    Аудитория: {event.room || "—"}
+                    Аудитория: {event.auditorium || "—"}
                 </Text>
             </View>
-            <FlatList
-                data={users}
+            <SectionList
+                sections={sections}
+                keyExtractor={(item) => item.login}
                 renderItem={({ item }) => (
                     <View style={styles.userRow}>
                         <Text>{item.fio}</Text>
@@ -69,7 +84,9 @@ export const AttendanceScreen = ({ route }) => {
                         />
                     </View>
                 )}
-                keyExtractor={(item) => item.login}
+                renderSectionHeader={({ section: { title } }) => (
+                    <Text style={styles.groupHeader}>{title}</Text>
+                )}
             />
         </View>
     ) : (

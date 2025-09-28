@@ -29,15 +29,13 @@ export const SchoolGroupsScreen = ({ navigation }) => {
 
     useEffect(() => {
         fetchGroups();
-        async () => {
-            const login = await AsyncStorage.getItem("authToken").then();
+        () => {
+            const login = AsyncStorage.getItem("authToken").then();
             try {
-                const response = await fetch(
+                const response = fetch(
                     `${URL}/user/access_level?login=${login}`
                 );
-                const data = await response.json();
-
-                console.log(data);
+                const data = response.json();
 
                 if (response.ok) {
                     setLevel(data.access_level);

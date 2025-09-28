@@ -31,31 +31,25 @@ export const SchoolOneGroupScreen = ({ route, navigation }) => {
         fetchStudents();
     }, [groupId]);
 
-    useEffect(
-        () => async () => {
-            const login = await AsyncStorage.getItem("authToken").then();
-            console.log(login);
-            try {
-                const response = await fetch(
-                    `${URL}/user/access_level?login=${login}`
-                );
-                const data = await response.json();
+    useEffect(() => {
+        async() => {const login = await AsyncStorage.getItem("authToken").then()};
+        try {
+            const response = fetch(`${URL}/user/access_level?login=${login}`);
+            const data = response.json();
+            
+            console.log(data);
 
-                console.log(data);
-
-                if (response.ok) {
-                    setLevel(data.access_level);
-                } else {
-                    console.warn("Ошибка сервера:", data.error);
-                    return null;
-                }
-            } catch (error) {
-                console.error("Ошибка сети:", error);
+            if (response.ok) {
+                setLevel(data.access_level);
+            } else {
+                console.warn("Ошибка сервера:", data.error);
                 return null;
             }
-        },
-        []
-    );
+        } catch (error) {
+            console.error("Ошибка сети:", error);
+            return null;
+        }
+    }, []);
 
     const fetchStudents = () => {
         setLoading(true);
@@ -181,7 +175,7 @@ export const SchoolOneGroupScreen = ({ route, navigation }) => {
                 {students.map((student) => (
                     <View key={student.id} style={styles.studentRow}>
                         <Text style={styles.studentName}>{student.fio}</Text>
-                        {["куратор", "админ", 'боец'].includes(level) ? (
+                        {["куратор", "админ"].includes(level) ? (
                             <View style={styles.actions}>
                                 <TouchableOpacity
                                     style={[
@@ -224,9 +218,14 @@ export const SchoolOneGroupScreen = ({ route, navigation }) => {
                 ))}
             </ScrollView>
 
-            <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
-                <Text style={styles.addButtonText}>Добавить</Text>
-            </TouchableOpacity>
+            {["куратор", "админ"].includes(level) ? (
+                <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={openAddModal}
+                >
+                    <Text style={styles.addButtonText}>Добавить</Text>
+                </TouchableOpacity>
+            ) : null}
 
             {/* Добавление студента */}
             <Modal visible={addVisible} transparent animationType="fade">

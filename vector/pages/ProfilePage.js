@@ -82,7 +82,7 @@ export const ProfileScreen = ({ navigation }) => {
                 </Text>
 
                 <Text style={styles.rating}>
-                    Рейтинг бойцов:{" "}
+                    Рейтинг бойца:{" "}
                     <Text style={{ color: "#337AFF", fontWeight: "bold" }}>
                         {profile.rating}
                     </Text>

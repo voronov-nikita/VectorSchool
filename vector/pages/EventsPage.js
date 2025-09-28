@@ -76,9 +76,10 @@ export const EventsScreen = () => {
     const [eventsByDate, setEventsByDate] = useState({});
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [eventTitle, setEventTitle] = useState("");
+    const [auditorium, setAuditorium] = useState("");
     const [eventDate, setEventDate] = useState(getCurrentDateString());
     const [startTime, setStartTime] = useState("");
-    const [endTime, setEndTime] = useState("");
+    const [endTime, setEndTime] = useState("-");
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editData, setEditData] = useState(null);
 
@@ -128,7 +129,9 @@ export const EventsScreen = () => {
             date: eventDate,
             start_time: startTime,
             end_time: endTime,
+            auditorium, // добавлено поле
         };
+
         try {
             const response = await fetch(`${URL}/events/create`, {
                 method: "POST",
@@ -162,8 +165,8 @@ export const EventsScreen = () => {
             {
                 text: "Удалить",
                 style: "destructive",
-                onPress: async () => {
-                    await fetch(`${URL}/events/${id}`, {
+                onPress: () => {
+                    fetch(`${URL}/events/${id}`, {
                         method: "DELETE",
                         headers: { login },
                     });
@@ -261,7 +264,9 @@ export const EventsScreen = () => {
                                         }
                                     >
                                         <Text style={styles.lessonTime}>
-                                            {ev.title} (В-78)
+                                            {ev.title} {"("}
+                                            {ev.auditorium}
+                                            {")"}
                                         </Text>
                                         <Text style={styles.lessonTitle}>
                                             {ev.start_time && ev.end_time
@@ -356,6 +361,13 @@ export const EventsScreen = () => {
                                     value={endTime}
                                     onChangeText={setEndTime}
                                 />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Аудитория"
+                                    value={auditorium}
+                                    onChangeText={setAuditorium}
+                                />
+
                                 <TouchableOpacity
                                     style={styles.modalBtn}
                                     onPress={createEvent}
@@ -527,6 +539,7 @@ const styles = StyleSheet.create({
         height: 56,
         borderRadius: 32,
         alignItems: "center",
+        textAlignVertical: "center",
         justifyContent: "center",
         shadowColor: "#000",
         shadowOpacity: 0.19,
@@ -534,6 +547,9 @@ const styles = StyleSheet.create({
         zIndex: 99,
     },
     fabText: {
+        textAlignVertical: "center",
+        textAlign: "center",
+        justifyContent: "top",
         color: "#fff",
         fontSize: 36,
         fontWeight: "bold",

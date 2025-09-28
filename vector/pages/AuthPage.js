@@ -171,8 +171,7 @@ export const AuthScreen = ({ navigation }) => {
                         </Text>
                     </TouchableOpacity>
                     <Text style={styles.copyright}>
-                        © 2025 МИРЭА – Российский технологический университет
-                        {"\n"}Профориентационный отряд "Вектор"{"\n"}
+                        © 2025 Профориентационный отряд РТУ МИРЭА «Вектор»
                     </Text>
                 </View>
             </KeyboardAvoidingView>

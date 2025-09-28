@@ -10,6 +10,7 @@ import {
 } from "react-native";
 
 import { URL } from "../config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const UsersScreen = () => {
     const [fighters, setFighters] = useState([]);
@@ -22,6 +23,13 @@ export const UsersScreen = () => {
             .then((res) => res.json())
             .then((data) => setFighters(data.fighters));
     }, [search, sort]);
+
+    const showInfo = () => {
+        const login = AsyncStorage.getItem('authToken').then()
+        fetch(`${URL}/profile/${login}`)
+            .then((res) => res.json())
+            .then((data) => setSelected(data));
+    };
 
     return (
         <View style={styles.container}>
@@ -89,7 +97,7 @@ export const UsersScreen = () => {
                 renderItem={({ item }) => (
                     <TouchableOpacity
                         style={styles.listItem}
-                        onPress={() => setSelected(item)}
+                        onPress={showInfo()}
                     >
                         <Text style={styles.listItemText}>{item.fio}</Text>
                     </TouchableOpacity>
@@ -113,10 +121,7 @@ export const UsersScreen = () => {
                                     Рейтинг: {selected.rating}
                                 </Text>
                                 <Text style={styles.modalText}>
-                                    Посещаемость: {selected.attendance}
-                                </Text>
-                                <Text style={styles.modalText}>
-                                    Достижения: {"\n"}{selected.achievements || "нет"}
+                                    Telegram: {selected.telegram}
                                 </Text>
                                 <TouchableOpacity
                                     style={styles.closeButton}
