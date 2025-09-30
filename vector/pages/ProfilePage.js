@@ -15,7 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { URL, achievementsConfig } from "../config";
 
 const { width } = Dimensions.get("window");
-const ITEM_SIZE = width / 6 - 12; // Размер иконки достижения
+const ITEM_SIZE = width / 6 - 12;
 
 export const ProfileScreen = ({ navigation }) => {
     const [profile, setProfile] = useState(null);
@@ -58,7 +58,6 @@ export const ProfileScreen = ({ navigation }) => {
         );
     }
 
-    // Фильтруем достижения, показываем только те, что есть в конфиге
     const achievementsToShow = profile.achievements.filter(
         (name) => achievementsConfig[name]
     );
@@ -95,15 +94,15 @@ export const ProfileScreen = ({ navigation }) => {
                     </Text>
                 </Text>
 
-                <Text style={styles.section}>Достижения:</Text>
                 {achievementsToShow.length === 0 ? (
                     <Text>Нет достижений</Text>
                 ) : (
                     <FlatList
                         data={achievementsToShow}
                         keyExtractor={(item) => item}
-                        numColumns={6}
-                        scrollEnabled={false} // Чтобы не конфликтовать с ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.achievementsList}
                         renderItem={({ item }) => (
                             <View style={styles.achievementItem}>
                                 <Image
@@ -119,6 +118,7 @@ export const ProfileScreen = ({ navigation }) => {
                     />
                 )}
             </View>
+
             <View style={styles.bottomRow}>
                 <Button
                     title="Выйти из системы"
@@ -157,16 +157,11 @@ const styles = StyleSheet.create({
     login: { fontSize: 16, marginBottom: 6 },
     rating: { fontSize: 16, marginBottom: 6 },
     attendance: { fontSize: 16, marginBottom: 12 },
-    section: {
-        fontSize: 16,
-        fontWeight: "bold",
-        marginTop: 8,
-        marginBottom: 5,
-    },
+    achievementsList: { paddingVertical: 10 },
     achievementItem: {
         alignItems: "center",
-        flex: 1,
-        margin: 6,
+        marginRight: 12,
+        width: ITEM_SIZE,
     },
     achievementImage: {
         width: ITEM_SIZE,

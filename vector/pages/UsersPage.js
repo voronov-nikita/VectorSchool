@@ -7,10 +7,10 @@ import {
     FlatList,
     Modal,
     StyleSheet,
+    Alert,
 } from "react-native";
 
 import { URL } from "../config";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const UsersScreen = () => {
     const [fighters, setFighters] = useState([]);
@@ -19,16 +19,28 @@ export const UsersScreen = () => {
     const [selected, setSelected] = useState(null);
 
     useEffect(() => {
-        fetch(`${URL}/users?search=${search}&sort=${sort}`)
+        fetch(`${URL}/users?search=${encodeURIComponent(search)}&sort=${sort}`)
             .then((res) => res.json())
-            .then((data) => setFighters(data.fighters));
+            .then((data) => setFighters(data.fighters || []))
+            .catch(() =>
+                Alert.alert(
+                    "Ошибка",
+                    "Не удалось загрузить список пользователей"
+                )
+            );
     }, [search, sort]);
 
-    const showInfo = () => {
-        const login = AsyncStorage.getItem('authToken').then()
-        fetch(`${URL}/profile/${login}`)
-            .then((res) => res.json())
-            .then((data) => setSelected(data));
+    const showInfo = async (login) => {
+        if (!login) return;
+        try {
+            const response = await fetch(`${URL}/profile/${login}`);
+            if (!response.ok) throw new Error("Профиль не найден");
+            const data = await response.json();
+            setSelected(data);
+        } catch (err) {
+            setSelected(null);
+            Alert.alert("Ошибка", "Не удалось загрузить профиль пользователя");
+        }
     };
 
     return (
@@ -73,22 +85,6 @@ export const UsersScreen = () => {
                         По рейтингу
                     </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                    style={[
-                        styles.sortBtn,
-                        sort === "attendance" && styles.sortBtnActive,
-                    ]}
-                    onPress={() => setSort("attendance")}
-                >
-                    <Text
-                        style={[
-                            styles.sortBtnText,
-                            sort === "attendance" && styles.sortBtnTextActive,
-                        ]}
-                    >
-                        По посещаемости
-                    </Text>
-                </TouchableOpacity>
             </View>
             <FlatList
                 style={styles.list}
@@ -97,7 +93,7 @@ export const UsersScreen = () => {
                 renderItem={({ item }) => (
                     <TouchableOpacity
                         style={styles.listItem}
-                        onPress={showInfo()}
+                        onPress={() => showInfo(item.login)}
                     >
                         <Text style={styles.listItemText}>{item.fio}</Text>
                     </TouchableOpacity>

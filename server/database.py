@@ -158,6 +158,15 @@ def init_db():
             FOREIGN KEY(user_login) REFERENCES users(login)
         );
     ''')
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS user_achievements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_login TEXT NOT NULL,
+            achievement_name TEXT NOT NULL,
+            date_obtained TEXT,
+            FOREIGN KEY(user_login) REFERENCES users(login)
+        )
+    ''')
 
     # Сохраняем всю эту хрень
     db.commit()

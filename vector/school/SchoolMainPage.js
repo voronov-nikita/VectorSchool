@@ -26,7 +26,7 @@ const services = [
         path: "SchoolGroups",
     },
     {
-        access_level: ["админ", "куратор", "боец"],
+        access_level: ["админ", "куратор"],
         label: "Домашки",
         color: "#5a0a6bff",
         path: "Tests",
@@ -38,7 +38,7 @@ const services = [
     //     path: "Homework",
     // },
     {
-        access_level: ["админ", "куратор", "боец", "училка"],
+        access_level: ["админ", "куратор", "училка"],
         label: "Достижения",
         color: "#b04429ff",
         path: "SchoolAchive",

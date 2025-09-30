@@ -62,8 +62,8 @@ def login():
     })
 
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# def allowed_file(filename):
+#     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @application.route('/user/access_level', methods=['GET'])
@@ -135,10 +135,51 @@ def api_add_group():
     return jsonify({'result': 'Group added'})
 
 
+@application.route('/groups_with_users', methods=['GET'])
+def get_groups_with_users():
+    db = get_db()
+    rows = db.execute('''
+        SELECT g.name AS group_name, g.curator, u.login, u.fio
+        FROM groups g
+        LEFT JOIN users u ON u.group_name = g.name
+        ORDER BY g.name, u.fio;
+    ''').fetchall()
+
+    groups = {}
+    for row in rows:
+        gn = row['group_name']
+        if gn not in groups:
+            groups[gn] = {
+                'curator': row['curator'],
+                'users': []
+            }
+        if row['login']:
+            groups[gn]['users'].append(
+                {'login': row['login'], 'fio': row['fio']})
+
+    result = []
+    for group_name, info in groups.items():
+        result.append({
+            'title': f"{group_name} (Куратор: {info['curator']})",
+            'data': info['users']
+        })
+
+    return jsonify(result)
+
+
 @application.route('/students', methods=['GET'])
 def api_get_students():
     group_id = request.args.get('group_id')
-    students = get_students(group_id)
+    db = get_db()
+    rows = db.execute('''
+        SELECT s.id, s.fio, s.group_id, s.attendance, s.birth_date, s.telegram_id,
+               u.login
+        FROM students s
+        LEFT JOIN users u ON s.fio = u.fio
+        WHERE s.group_id = ?
+    ''', (group_id,)).fetchall()
+
+    students = [dict(row) for row in rows]
     return jsonify(students)
 
 
@@ -288,10 +329,11 @@ def edit_event(event_id):
     data = request.json
     fields = []
     values = []
-    for k in ['title', 'start_time', 'end_time', 'date']:
+    for k in ['title', 'start_time', 'end_time', 'date', 'auditorium']:
         if k in data:
             fields.append(f"{k}=?")
             values.append(data[k])
+
     values.append(event_id)
     if fields:
         db = get_db()
@@ -316,14 +358,29 @@ def get_event_info(event_id):
 @application.route('/event/<int:event_id>/participants', methods=['GET'])
 def get_event_participants(event_id):
     db = get_db()
-    rows = db.execute('''
-        SELECT u.login, u.fio, u.access_level, u.group_name, IFNULL(ea.attended, 0) AS attended
-        FROM event_participants ep
-        JOIN users u ON ep.user_login = u.login
-        LEFT JOIN event_attendance ea ON ea.event_id = ep.event_id AND ea.user_login = u.login
-        WHERE ep.event_id = ?
-    ''', (event_id,))
-    participants = [dict(r) for r in rows]
+    # Получаем всех логинов участников события
+    participant_logins = db.execute('''
+        SELECT login FROM users
+    ''').fetchall()
+    logins = [row['login'] for row in participant_logins]
+
+    if not logins:
+        # Нет участников - вернуть пустой список
+        return jsonify({'participants': []})
+
+    # Получаем посещаемость для участников данного event_id
+    attendance_rows = db.execute(f'''
+        SELECT user_login, attended FROM event_attendance WHERE event_id = ? AND user_login IN ({','.join('?' for _ in logins)})
+    ''', (event_id, *logins)).fetchall()
+
+    # Собираем словарь посещаемости user_login -> attended
+    attendance_dict = {row['user_login']: bool(
+        row['attended']) for row in attendance_rows}
+
+    # Собираем итоговый список участников с посещаемостью (если нет отметки - False)
+    participants = [{'login': login, 'attended': attendance_dict.get(
+        login, False)} for login in logins]
+
     return jsonify({'participants': participants})
 
 
@@ -338,11 +395,6 @@ def set_event_attendance(event_id, login):
         response.headers.add(
             "Access-Control-Allow-Headers", "Content-Type, login")
         return response
-
-    # admin_login = request.headers.get('login_admin')
-    # admin_user = get_user_by_login(admin_login)
-    # if not admin_user or admin_user['access_level'] not in ('админ', 'куратор'):
-    #     return jsonify({'error': 'Access denied'}), 403
 
     status = request.json.get('attended')
     print(f"\n\n{status}\n\n")
@@ -359,12 +411,45 @@ def set_event_attendance(event_id, login):
 
 
 @application.route('/achievements', methods=['GET'])
-def get_achievements():
+def achievements_api():
     login = request.headers.get('login')
     if not login:
         return jsonify({'error': 'Login header is required'}), 400
     achievements = get_user_achievements(login)
     return jsonify(achievements)
+
+
+@application.route('/achievements/add', methods=['POST'])
+def add_achievement_api():
+    # логин администратора, добавляющего достижение
+    admin_login = request.headers.get('login')
+    if not admin_login:
+        return jsonify({'error': 'Login header is required'}), 400
+
+    data = request.json
+    user_login = data.get('user_login')
+    achievement_name = data.get('achievement_name')
+    if not user_login or not achievement_name:
+        return jsonify({'error': 'user_login and achievement_name are required'}), 400
+
+    db = get_db()
+
+    # Проверяем, что достижение еще не установлено у пользователя
+    exists = db.execute('''
+        SELECT 1 FROM user_achievements WHERE user_login = ? AND achievement_name = ?
+    ''', (user_login, achievement_name)).fetchone()
+    if exists:
+        return jsonify({'message': 'Достижение уже у пользователя'}), 200
+
+    import datetime
+    date_obtained = datetime.datetime.now().isoformat()
+
+    db.execute('''
+        INSERT INTO user_achievements (user_login, achievement_name, date_obtained)
+        VALUES (?, ?, ?)
+    ''', (user_login, achievement_name, date_obtained))
+    db.commit()
+    return jsonify({'message': 'Достижение добавлено'}), 201
 
 
 def get_user_achievements(login):

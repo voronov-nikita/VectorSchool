@@ -76,7 +76,7 @@ export const EventsScreen = () => {
     const [eventsByDate, setEventsByDate] = useState({});
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [eventTitle, setEventTitle] = useState("");
-    const [auditorium, setAuditorium] = useState("");
+    const [auditorium, setAuditorium] = useState(""); // Добавлено поле auditorium
     const [eventDate, setEventDate] = useState(getCurrentDateString());
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("-");
@@ -129,7 +129,7 @@ export const EventsScreen = () => {
             date: eventDate,
             start_time: startTime,
             end_time: endTime,
-            auditorium, // добавлено поле
+            auditorium, // добавлено поле auditorium
         };
 
         try {
@@ -147,6 +147,7 @@ export const EventsScreen = () => {
                 setEventTitle("");
                 setStartTime("");
                 setEndTime("");
+                setAuditorium(""); // сброс auditorium при создании
                 setEventDate(selectedDate);
                 fetchEvents();
             } else {
@@ -184,21 +185,27 @@ export const EventsScreen = () => {
             start_time: ev.start_time || "",
             end_time: ev.end_time || "",
             date: ev.date,
+            auditorium: ev.auditorium || "", // Добавлено поле auditorium
         });
         setEditModalVisible(true);
     };
 
     const handleEditSave = async () => {
         const login = await AsyncStorage.getItem("authToken");
+
+        // Собираем поля для обновления, включая auditorium
+        const data = editData || {};
+        const fieldsToSend = {};
+        ["title", "start_time", "end_time", "date", "auditorium"].forEach(
+            (k) => {
+                if (data[k] !== undefined) fieldsToSend[k] = data[k];
+            }
+        );
+
         await fetch(`${URL}/events/${editData.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json", login },
-            body: JSON.stringify({
-                title: editData.title,
-                start_time: editData.start_time,
-                end_time: editData.end_time,
-                date: editData.date,
-            }),
+            body: JSON.stringify(fieldsToSend),
         });
         setEditModalVisible(false);
         setEditData(null);
@@ -443,6 +450,18 @@ export const EventsScreen = () => {
                                         }))
                                     }
                                 />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Аудитория"
+                                    value={editData?.auditorium || ""}
+                                    onChangeText={(txt) =>
+                                        setEditData((prev) => ({
+                                            ...prev,
+                                            auditorium: txt,
+                                        }))
+                                    }
+                                />
+
                                 <TouchableOpacity
                                     style={styles.modalBtn}
                                     onPress={handleEditSave}

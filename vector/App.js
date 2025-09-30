@@ -173,6 +173,7 @@ export default function App() {
                         options={{
                             title: "Инструкци и правила пользования",
                             headerTitleAlign: "center",
+                            drawerItemStyle: {display: 'none'}
                         }}
                         component={InstructionScreen}
                     />

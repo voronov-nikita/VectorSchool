@@ -20,7 +20,7 @@ const services = [
         path: "Events",
     },
     {
-        access_level: ["боец", "админ"],
+        access_level: ["админ", "куратор"],
         label: "Инструкция",
         color: "#e97900ff",
         path: "Instruction",
