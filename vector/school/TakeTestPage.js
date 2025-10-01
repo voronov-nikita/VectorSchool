@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
     View,
     Text,
@@ -6,9 +6,11 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
+    Platform,
 } from "react-native";
 
 import { useInfoModal } from "../components/InfoModal";
+import { URL } from "../config";
 
 export const TakeTestScreen = ({ route, navigation }) => {
     const { test } = route.params;
@@ -21,8 +23,12 @@ export const TakeTestScreen = ({ route, navigation }) => {
             return null;
         })
     );
+    const [attachedFiles, setAttachedFiles] = useState(
+        test.questions.map(() => null)
+    );
+    const fileInputRefs = useRef([]);
+
     const showModal = useInfoModal();
-    const [score, setScore] = useState(0);
 
     const setAnswer = (val, qIdx, ansIdx = null) => {
         const newSelected = [...selectedAnswers];
@@ -42,44 +48,67 @@ export const TakeTestScreen = ({ route, navigation }) => {
         setSelectedAnswers(newSelected);
     };
 
-    // Посчитать результат
-    const calculateResult = () => {
-        let total = 0;
-        test.questions.forEach((q, i) => {
-            const correctIndexes = q.correctIndexes || [];
-            if (q.type === "text") {
+    // Открыть диалог выбора файла
+    const triggerFileSelect = (qIdx) => {
+        if (fileInputRefs.current[qIdx]) {
+            fileInputRefs.current[qIdx].click();
+        }
+    };
+
+    // Обработчик выбора файла для веб
+    const onFileChange = (event, qIdx) => {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+        if (file.size > 20 * 1024 * 1024) {
+            showModal("Файл не должен превышать 20 МБ");
+            return;
+        }
+        const newFiles = [...attachedFiles];
+        newFiles[qIdx] = file;
+        setAttachedFiles(newFiles);
+    };
+
+    const calculateResult = async () => {
+        try {
+            const formData = new FormData();
+            formData.append("test_id", test.id);
+
+            selectedAnswers.forEach((ans, idx) => {
                 if (
-                    (selectedAnswers[i] || "").trim().toLowerCase() ===
-                    (q.answers[0] || "").trim().toLowerCase()
+                    Array.isArray(ans) ||
+                    typeof ans === "number" ||
+                    typeof ans === "string"
                 ) {
-                    total += test.score_per_question;
+                    formData.append(`answers[${idx}]`, JSON.stringify(ans));
                 }
-            } else if (q.type === "single") {
-                if (
-                    selectedAnswers[i] !== null &&
-                    correctIndexes.includes(selectedAnswers[i])
-                ) {
-                    total += test.score_per_question;
+                if (attachedFiles[idx]) {
+                    // В web файл приходит из input как File-объект
+                    formData.append(`files[${idx}]`, attachedFiles[idx]);
                 }
-            } else if (q.type === "multiple") {
-                const selectedSet = new Set(selectedAnswers[i]);
-                const correctSet = new Set(correctIndexes);
-                if (
-                    selectedSet.size === correctSet.size &&
-                    [...selectedSet].every((x) => correctSet.has(x))
-                ) {
-                    total += test.score_per_question;
-                }
+            });
+
+            const response = await fetch(`${URL}/api/tests/submit`, {
+                method: "POST",
+                body: formData,
+                // При web multipart/form-data Content-Type ставится автоматически, не указывайте явно!
+                // headers: { "Content-Type": "multipart/form-data" }
+            });
+
+            if (response.ok) {
+                showModal("Результаты успешно отправлены");
+                navigation.goBack();
+            } else {
+                const errorData = await response.json();
+                showModal(
+                    "Ошибка при отправке результатов: " +
+                        (errorData.error || "Неизвестная ошибка")
+                );
             }
-        });
-        // запишем результат
-        setScore(total);
-        // покажем результат
-        // showModal(`Ваш результат: ${score}`);
-        // Отправим результат на сервер
-        
-        // вернем человека обратно
-        navigation.goBack();
+        } catch (error) {
+            showModal("Ошибка при отправке: " + error.message);
+        }
     };
 
     return (
@@ -134,6 +163,30 @@ export const TakeTestScreen = ({ route, navigation }) => {
                             </TouchableOpacity>
                         ))
                     )}
+                    <TouchableOpacity
+                        onPress={() => triggerFileSelect(idx)}
+                        style={styles.attachButton}
+                    >
+                        <Text style={styles.attachButtonText}>
+                            Прикрепить файл (до 20 МБ)
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Скрытый input для выбора файла (только для web) */}
+                    {Platform.OS === "web" && (
+                        <input
+                            type="file"
+                            style={{ display: "none" }}
+                            ref={(el) => (fileInputRefs.current[idx] = el)}
+                            onChange={(e) => onFileChange(e, idx)}
+                        />
+                    )}
+
+                    {attachedFiles[idx] && (
+                        <Text style={styles.fileName}>
+                            {attachedFiles[idx].name}
+                        </Text>
+                    )}
                 </View>
             ))}
             <TouchableOpacity
@@ -142,13 +195,6 @@ export const TakeTestScreen = ({ route, navigation }) => {
             >
                 <Text style={styles.saveButtonText}>Закончить попытку</Text>
             </TouchableOpacity>
-            {/* {score !== null && (
-                <View style={styles.resultBox}>
-                    <Text style={styles.resultText}>
-                        Ваш итог: {score}/{test.max_score}
-                    </Text>
-                </View>
-            )} */}
         </ScrollView>
     );
 };
@@ -218,6 +264,24 @@ const styles = StyleSheet.create({
         color: "#222",
         fontSize: 16,
     },
+    attachButton: {
+        marginTop: 8,
+        backgroundColor: "#ddd",
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 6,
+        alignSelf: "flex-start",
+    },
+    attachButtonText: {
+        color: "#333",
+        fontSize: 14,
+    },
+    fileName: {
+        marginTop: 4,
+        fontSize: 12,
+        color: "#555",
+        fontStyle: "italic",
+    },
     saveButton: {
         backgroundColor: "#227be3",
         borderRadius: 13,
@@ -230,18 +294,5 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "700",
         fontSize: 17,
-    },
-    resultBox: {
-        backgroundColor: "#227be3",
-        borderRadius: 13,
-        marginTop: 18,
-        alignItems: "center",
-        paddingVertical: 14,
-        marginHorizontal: 40,
-    },
-    resultText: {
-        color: "#fff",
-        fontSize: 17,
-        fontWeight: "700",
     },
 });

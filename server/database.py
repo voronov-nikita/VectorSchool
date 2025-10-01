@@ -109,6 +109,21 @@ def init_db():
     ''')
 
     db.execute('''
+        CREATE TABLE IF NOT EXISTS test_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_login TEXT NOT NULL,
+            test_id INTEGER NOT NULL,
+            question_index INTEGER NOT NULL,
+            answer_text TEXT,
+            file_path TEXT,
+            score INTEGER DEFAULT 0,
+            checked INTEGER DEFAULT 0,
+            FOREIGN KEY(test_id) REFERENCES tests(id),
+            FOREIGN KEY(user_login) REFERENCES users(login)
+        );
+    ''')
+
+    db.execute('''
         CREATE TABLE IF NOT EXISTS test_questions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             test_id INTEGER NOT NULL,

@@ -9,10 +9,10 @@ import {
     TouchableOpacity,
     Modal,
     TextInput,
-    Alert,
 } from "react-native";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import { URL } from "../config";
 
@@ -76,12 +76,16 @@ export const EventsScreen = () => {
     const [eventsByDate, setEventsByDate] = useState({});
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [eventTitle, setEventTitle] = useState("");
-    const [auditorium, setAuditorium] = useState(""); // Добавлено поле auditorium
+    const [auditorium, setAuditorium] = useState("");
     const [eventDate, setEventDate] = useState(getCurrentDateString());
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("-");
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editData, setEditData] = useState(null);
+
+    // Новый стейт для удаления
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [deleteId, setDeleteId] = useState(null);
 
     const isMobile = width < 768;
 
@@ -129,7 +133,7 @@ export const EventsScreen = () => {
             date: eventDate,
             start_time: startTime,
             end_time: endTime,
-            auditorium, // добавлено поле auditorium
+            auditorium,
         };
 
         try {
@@ -147,35 +151,46 @@ export const EventsScreen = () => {
                 setEventTitle("");
                 setStartTime("");
                 setEndTime("");
-                setAuditorium(""); // сброс auditorium при создании
+                setAuditorium("");
                 setEventDate(selectedDate);
                 fetchEvents();
             } else {
-                Alert.alert("Ошибка", data.error || "unknown");
+                // Ошибка создания мероприятия
             }
         } catch (err) {
-            Alert.alert("Ошибка сети", err.message);
+            // Ошибка сети
         }
     };
 
-    // Удаление
-    const handleDelete = async (id) => {
-        const login = await AsyncStorage.getItem("authToken");
-        Alert.alert("Удалить мероприятие?", "Вы уверены?", [
-            { text: "Отмена", style: "cancel" },
-            {
-                text: "Удалить",
-                style: "destructive",
-                onPress: () => {
-                    fetch(`${URL}/events/${id}`, {
-                        method: "DELETE",
-                        headers: { login },
-                    });
-                    fetchEvents();
-                },
-            },
-        ]);
+    // ////////////////////////////
+    // Новый метод удаления через modal
+    // ////////////////////////////
+    const openDeleteModal = (id) => {
+        setDeleteId(id);
+        setDeleteModalVisible(true);
     };
+
+    const confirmDelete = async () => {
+        const login = await AsyncStorage.getItem("authToken");
+        try {
+            await fetch(`${URL}/events/${deleteId}`, {
+                method: "DELETE",
+                headers: { login },
+            });
+            setDeleteModalVisible(false);
+            setDeleteId(null);
+            fetchEvents();
+        } catch (err) {
+            setDeleteModalVisible(false);
+            setDeleteId(null);
+        }
+    };
+
+    const cancelDelete = () => {
+        setDeleteModalVisible(false);
+        setDeleteId(null);
+    };
+    // ////////////////////////////
 
     // Редактирование
     const openEditModal = (ev) => {
@@ -185,15 +200,13 @@ export const EventsScreen = () => {
             start_time: ev.start_time || "",
             end_time: ev.end_time || "",
             date: ev.date,
-            auditorium: ev.auditorium || "", // Добавлено поле auditorium
+            auditorium: ev.auditorium || "",
         });
         setEditModalVisible(true);
     };
 
     const handleEditSave = async () => {
         const login = await AsyncStorage.getItem("authToken");
-
-        // Собираем поля для обновления, включая auditorium
         const data = editData || {};
         const fieldsToSend = {};
         ["title", "start_time", "end_time", "date", "auditorium"].forEach(
@@ -290,21 +303,23 @@ export const EventsScreen = () => {
                                                     openEditModal(ev)
                                                 }
                                             >
-                                                <Text
-                                                    style={styles.editBtnText}
-                                                >
-                                                    ✎
-                                                </Text>
+                                                <MaterialCommunityIcons
+                                                    name="pencil-outline"
+                                                    size={22}
+                                                    color="#222"
+                                                />
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 style={styles.delBtn}
                                                 onPress={() =>
-                                                    handleDelete(ev.id)
+                                                    openDeleteModal(ev.id)
                                                 }
                                             >
-                                                <Text style={styles.delBtnText}>
-                                                    🗑
-                                                </Text>
+                                                <MaterialCommunityIcons
+                                                    name="trash-can-outline"
+                                                    size={22}
+                                                    color="#fff"
+                                                />
                                             </TouchableOpacity>
                                         </View>
                                     )}
@@ -476,6 +491,49 @@ export const EventsScreen = () => {
                                 >
                                     <Text style={styles.modalCloseText}>
                                         Закрыть
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Modal>
+                    {/* Модалка удаления */}
+                    <Modal
+                        transparent={true}
+                        visible={deleteModalVisible}
+                        animationType="slide"
+                        onRequestClose={cancelDelete}
+                    >
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalWindow}>
+                                <Text style={styles.modalTitle}>
+                                    Удалить мероприятие?
+                                </Text>
+                                <Text
+                                    style={{
+                                        textAlign: "center",
+                                        marginBottom: 16,
+                                    }}
+                                >
+                                    Вы уверены, что хотите удалить мероприятие?
+                                    Это действие нельзя отменить.
+                                </Text>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.modalBtn,
+                                        { backgroundColor: "#ff5757" },
+                                    ]}
+                                    onPress={confirmDelete}
+                                >
+                                    <Text style={styles.modalBtnText}>
+                                        Удалить
+                                    </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.modalClose}
+                                    onPress={cancelDelete}
+                                >
+                                    <Text style={styles.modalCloseText}>
+                                        Отмена
                                     </Text>
                                 </TouchableOpacity>
                             </View>

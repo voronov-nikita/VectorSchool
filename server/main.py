@@ -1,3 +1,4 @@
+import uuid
 from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 from database import *
@@ -5,9 +6,19 @@ from werkzeug.utils import secure_filename
 import os
 # from admin.app import index
 
+# <---------------- Определение основного КОНСТАНТ и зависимостей ---------------->
+
 application = Flask(__name__)
 CORS(application, origins=["*"], methods=["GET", "POST",
      "PATCH", "DELETE", "OPTIONS"], supports_credentials=True)
+
+UPLOAD_FOLDER = "./uploads"
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+# <---------------- Определение основного кода ---------------->
 
 
 @application.before_request
@@ -156,12 +167,11 @@ def get_groups_with_users():
         if row['login']:
             groups[gn]['users'].append(
                 {'login': row['login'], 'fio': row['fio']})
-
     result = []
     for group_name, info in groups.items():
         result.append({
             'title': f"{group_name} (Куратор: {info['curator']})",
-            'data': info['users']
+            'data': info['users'] 
         })
 
     return jsonify(result)
@@ -275,6 +285,109 @@ def add_test_api():
     data = request.get_json()
     test_id = add_test_with_questions(data)
     return jsonify({'result': 'Test added', 'id': test_id})
+
+
+@application.route('/api/tests/submit', methods=['POST'])
+def submit_test_results():
+    user_login = request.headers.get('login')  # или из токена/данных сессии
+    test_id = request.form.get('test_id')
+    if not user_login or not test_id:
+        return jsonify({"error": "Отсутствует login или test_id"}), 400
+
+    # Получаем ответы и файлы
+    answers_raw = {}
+    for key, value in request.form.items():
+        if key.startswith("answers["):
+            idx = int(key[8:-1])
+            answers_raw[idx] = value
+
+    files = request.files
+
+    db = get_db()
+
+    for idx, answer_json in answers_raw.items():
+        answer_data = None
+        try:
+            import json
+            answer_data = json.loads(answer_json)
+        except Exception:
+            answer_data = answer_json
+
+        file_path = None
+        file_key = f"files[{idx}]"
+        if file_key in files:
+            file = files[file_key]
+            if file.content_length > MAX_FILE_SIZE:
+                return jsonify({"error": f"Файл для вопроса {idx} превышает 20 МБ"}), 400
+            filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
+            file.save(os.path.join(UPLOAD_FOLDER, filename))
+            file_path = filename
+
+        # По каждому вопросу записываем в БД
+        db.execute('''
+            INSERT INTO test_results (user_login, test_id, question_index, answer_text, file_path, score, checked)
+            VALUES (?, ?, ?, ?, ?, 0, 0)
+        ''', (user_login, test_id, idx, str(answer_data), file_path))
+
+    db.commit()
+    return jsonify({"result": "Результаты успешно сохранены"})
+
+
+@application.route('/tests/files_upload', methods=['POST'])
+def upload_test_files():
+    if 'test_id' not in request.form:
+        return jsonify({"error": "Отсутствует test_id"}), 400
+
+    test_id = request.form['test_id']
+    files = request.files
+
+    db = get_db()
+
+    for key in files:
+        # Ожидаем ключи вида files[0], files[1] и т.д.
+        file = files[key]
+        idx_str = key[key.find('[')+1:key.find(']')]
+        try:
+            question_index = int(idx_str)
+        except ValueError:
+            continue
+
+        if file.content_length > MAX_FILE_SIZE:
+            return jsonify({"error": f"Файл для вопроса {question_index} превышает 20 МБ"}), 400
+
+        filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
+        file.save(os.path.join(UPLOAD_FOLDER, filename))
+
+        # Сохраняем путь к файлу в базе, если нужно (или связываем с вопросом)
+        # Пока что просто выводим в лог или делаем нужный запрос
+
+        # Например, можно связать файл с вопросом или тестом,
+        # но так как вопросы уже в базе, нужна дополнительная логика
+
+    return jsonify({"result": "Файлы успешно загружены"})
+
+
+@application.route('/api/tests/results/<int:test_id>/<user_login>', methods=['GET'])
+def get_test_results(test_id, user_login):
+    # Проверка прав доступа должна быть здесь
+    db = get_db()
+    rows = db.execute('''
+        SELECT question_index, answer_text, file_path, score, checked
+        FROM test_results
+        WHERE test_id = ? AND user_login = ?
+        ORDER BY question_index
+    ''', (test_id, user_login)).fetchall()
+
+    results = []
+    for r in rows:
+        results.append({
+            "question_index": r['question_index'],
+            "answer_text": r['answer_text'],
+            "file_url": f"/uploads/{r['file_path']}" if r['file_path'] else None,
+            "score": r['score'],
+            "checked": bool(r['checked']),
+        })
+    return jsonify({"results": results})
 
 
 def is_admin(login):

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
     View,
     Text,
@@ -7,6 +7,7 @@ import {
     FlatList,
     StyleSheet,
     ScrollView,
+    Platform,
 } from "react-native";
 
 import { useInfoModal } from "../components/InfoModal";
@@ -25,18 +26,25 @@ export const CreateTestScreen = ({ navigation }) => {
     const [questionType, setQuestionType] = useState("single"); // "single", "multiple", "text"
     const [textAnswer, setTextAnswer] = useState("");
 
+    // Файлы, прикреплённые к создаваемому вопросу
+    const [attachedFiles, setAttachedFiles] = useState([]);
+    const fileInputRefs = useRef([]);
+
     const showModal = useInfoModal();
 
+    // Добавить вариант ответа
     function addAnswer() {
         setAnswers((a) => [...a, ""]);
     }
 
+    // Изменить текст варианта ответа
     function setAnswerText(text, index) {
         const newAnswers = [...answers];
         newAnswers[index] = text;
         setAnswers(newAnswers);
     }
 
+    // Выбор правильных ответов (чекбоксы)
     function toggleCorrectIndex(index) {
         if (questionType === "single") {
             setCorrectIndexes([index]);
@@ -49,6 +57,27 @@ export const CreateTestScreen = ({ navigation }) => {
         }
     }
 
+    // Открыть диалог выбора файла (web)
+    const triggerFileSelect = (qIdx) => {
+        if (fileInputRefs.current[qIdx]) {
+            fileInputRefs.current[qIdx].click();
+        }
+    };
+
+    // Обработка выбора файла
+    const onFileChange = (event, qIdx) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 20 * 1024 * 1024) {
+            showModal("Файл не должен превышать 20 МБ");
+            return;
+        }
+        const newFiles = [...attachedFiles];
+        newFiles[qIdx] = file;
+        setAttachedFiles(newFiles);
+    };
+
+    // Добавить вопрос в список
     function addQuestion() {
         if (!questionText.trim()) {
             showModal("Введите текст вопроса");
@@ -64,6 +93,7 @@ export const CreateTestScreen = ({ navigation }) => {
                 type: "text",
                 answers: [textAnswer],
                 correctIndexes: [],
+                file: attachedFiles[questions.length] || null,
             };
             setQuestions((qs) => [...qs, question]);
         } else {
@@ -75,25 +105,33 @@ export const CreateTestScreen = ({ navigation }) => {
                 showModal("Выберите хотя бы один правильный ответ");
                 return;
             }
-            const copiedAnswers = answers.map((a) => a);
+            const copiedAnswers = [...answers];
             const copiedCorrectIndexes = [...correctIndexes];
-
             const question = {
                 text: questionText,
                 answers: copiedAnswers,
                 correctIndexes: copiedCorrectIndexes,
                 type: questionType,
+                file: attachedFiles[questions.length] || null,
             };
             setQuestions((qs) => [...qs, question]);
         }
+
+        // Сброс полей формы и файла
         setQuestionText("");
         setAnswers([""]);
         setCorrectIndexes([]);
         setTextAnswer("");
         setQuestionType("single");
+        setAttachedFiles((files) => {
+            const newFiles = [...files];
+            newFiles[questions.length] = null;
+            return newFiles;
+        });
         setShowForm(false);
     }
 
+    // Сохранение теста на сервер (файлы нужно отправлять отдельно по серверной логике)
     function saveTest() {
         if (
             name.trim() === "" ||
@@ -108,11 +146,14 @@ export const CreateTestScreen = ({ navigation }) => {
             return;
         }
 
+        // Убираем из вопросов объекты file перед отправкой JSON
+        const questionsToSend = questions.map(({ file, ...q }) => q);
+
         const payload = {
             name,
             max_score: Number(maxScore),
             score_per_question: Number(scorePerQuestion),
-            questions,
+            questions: questionsToSend,
         };
 
         fetch(`${URL}/tests`, {
@@ -121,7 +162,10 @@ export const CreateTestScreen = ({ navigation }) => {
             body: JSON.stringify(payload),
         })
             .then((res) => res.json())
-            .then(() => navigation.goBack())
+            .then(() => {
+                // Тут можно добавить логику для загрузки файлов если нужно
+                navigation.goBack();
+            })
             .catch(() => showModal("Ошибка при сохранении теста"));
     }
 
@@ -187,7 +231,6 @@ export const CreateTestScreen = ({ navigation }) => {
                                     </Text>
                                 ))
                             )}
-
                             <Text
                                 style={{
                                     marginTop: 2,
@@ -202,6 +245,17 @@ export const CreateTestScreen = ({ navigation }) => {
                                     ? "Множественный выбор"
                                     : "Текстовый ответ"}
                             </Text>
+                            {item.file && (
+                                <Text
+                                    style={{
+                                        marginTop: 6,
+                                        fontStyle: "italic",
+                                        color: "#555",
+                                    }}
+                                >
+                                    Прикреплен файл: {item.file.name}
+                                </Text>
+                            )}
                         </View>
                     )}
                 />
@@ -325,6 +379,36 @@ export const CreateTestScreen = ({ navigation }) => {
                         </View>
 
                         <TouchableOpacity
+                            style={[styles.attachButton, { marginTop: 10 }]}
+                            onPress={() => triggerFileSelect(questions.length)}
+                        >
+                            <Text style={styles.attachButtonText}>
+                                Прикрепить файл к вопросу (до 20 МБ)
+                            </Text>
+                        </TouchableOpacity>
+
+                        {attachedFiles[questions.length] && (
+                            <Text style={styles.fileName}>
+                                {attachedFiles[questions.length].name}
+                            </Text>
+                        )}
+
+                        {/* Скрытый input для web */}
+                        {Platform.OS === "web" && (
+                            <input
+                                type="file"
+                                style={{ display: "none" }}
+                                ref={(el) =>
+                                    (fileInputRefs.current[questions.length] =
+                                        el)
+                                }
+                                onChange={(e) =>
+                                    onFileChange(e, questions.length)
+                                }
+                            />
+                        )}
+
+                        <TouchableOpacity
                             style={styles.formButton}
                             onPress={addQuestion}
                         >
@@ -350,11 +434,10 @@ export const CreateTestScreen = ({ navigation }) => {
     );
 };
 
-// Стили можно оставить как есть
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#fff", // светлый фон
+        backgroundColor: "#fff",
         paddingHorizontal: 20,
         paddingTop: 20,
     },
@@ -406,16 +489,10 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         alignItems: "center",
     },
-    formButtonText: {
-        fontWeight: "700",
-        fontSize: 16,
-        color: "#fff",
-    },
     saveButton: {
         backgroundColor: "#227be3",
         borderRadius: 20,
         paddingVertical: 15,
-        paddingHorizontal: 0,
         marginHorizontal: 20,
         marginBottom: 22,
         alignItems: "center",
@@ -477,8 +554,8 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     radioButtons: {
-        // margin: 20,
         marginBottom: 11,
+        flexDirection: "row",
     },
     radioOption: {
         borderWidth: 1,
@@ -499,5 +576,22 @@ const styles = StyleSheet.create({
     },
     radioTextSelected: {
         color: "#fff",
+    },
+    attachButton: {
+        backgroundColor: "#ddd",
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: 8,
+        alignSelf: "flex-start",
+    },
+    attachButtonText: {
+        color: "#333",
+        fontSize: 14,
+    },
+    fileName: {
+        marginTop: 6,
+        fontSize: 13,
+        fontStyle: "italic",
+        color: "#555",
     },
 });
