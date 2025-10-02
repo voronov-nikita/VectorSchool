@@ -1,11 +1,19 @@
 import uuid
 from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
-from database import *
+from database.models.achievement_models import *
+from database.models.attendance_models import *
+from database.models.event_models import *
+from database.models.group_models import *
+from database.models.test_models import *
+from database.models.user_models import *
+from database.db_connection import *
+
 from werkzeug.utils import secure_filename
 from endpoints.flask_users import user_bp
 from endpoints.flask_groups import groups_bp
 from endpoints.flask_attendance import attandance_bp
+from endpoints.flask_students import students_bp
 import os
 # from admin.app import index
 
@@ -22,7 +30,9 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 application.register_blueprint(user_bp)
 application.register_blueprint(groups_bp)
+application.register_blueprint(students_bp)
 application.register_blueprint(attandance_bp)
+
 
 CORS(application, origins=["*"], methods=["GET", "POST",
      "PATCH", "DELETE", "OPTIONS"], supports_credentials=True)
@@ -43,82 +53,6 @@ def teardown_db(exception):
 # Инициализация базы при запуске
 with application.app_context():
     init_db()
-
-
-@application.route('/students', methods=['GET'])
-def api_get_students():
-    group_id = request.args.get('group_id')
-    db = get_db()
-    rows = db.execute('''
-        SELECT s.id, s.fio, s.group_id, s.attendance, s.birth_date, s.telegram_id,
-               u.login
-        FROM students s
-        LEFT JOIN users u ON s.fio = u.fio
-        WHERE s.group_id = ?
-    ''', (group_id,)).fetchall()
-
-    students = [dict(row) for row in rows]
-    return jsonify(students)
-
-
-@application.route('/students', methods=['POST'])
-def api_add_student():
-    data = request.get_json()
-    fio = data.get('fio')
-    group_id = data.get('group_id')
-    birth_date = data.get('birth_date', '')
-    telegram_id = data.get('telegram_id', '')
-
-    if not fio or not group_id:
-        return jsonify({'error': 'ФИО и ID группы обязательны'}), 400
-
-    add_student(fio, group_id, birth_date, telegram_id)
-    return jsonify({'result': 'Student added'})
-
-
-@application.route('/students/<int:student_id>', methods=['DELETE'])
-def api_delete_student(student_id):
-    db = get_db()
-    db.execute("DELETE FROM students WHERE id=?", (student_id,))
-    db.commit()
-    return jsonify({"result": "deleted"})
-
-
-@application.route('/students/<int:student_id>/attendance', methods=['POST'])
-def api_update_attendance(student_id):
-    data = request.get_json()
-    delta = data.get('delta')
-    if delta not in [1, -1]:
-        return jsonify({'error': 'Некорректное изменение'}), 400
-    db = get_db()
-    student = db.execute(
-        "SELECT attendance FROM students WHERE id=?", (student_id,)).fetchone()
-    if not student:
-        return jsonify({"error": "Студент не найден"}), 404
-    new_value = max((student['attendance'] or 0) + delta, 0)
-    db.execute("UPDATE students SET attendance=? WHERE id=?",
-               (new_value, student_id))
-    db.commit()
-    return jsonify({'attendance': new_value})
-
-
-@application.route('/attendance/bulk', methods=['POST'])
-def save_attendance_bulk():
-    data = request.get_json()
-    lesson_id = data.get('lesson_id')
-    # [{student_id: ..., status: '+' или 'Н'}]
-    attendances = data.get('attendances')
-    if not lesson_id or not isinstance(attendances, list):
-        return jsonify({'error': 'Недостаточно данных'}), 400
-    for rec in attendances:
-        set_attendance(rec['student_id'], lesson_id, rec['status'])
-    return jsonify({'result': 'ok'})
-
-
-@application.route('/lessons/<int:lesson_id>', methods=['DELETE'])
-def api_delete_lesson(lesson_id):
-    delete_lesson(lesson_id)
-    return jsonify({'result': 'Lesson deleted'})
 
 
 @application.route('/tests', methods=['GET'])

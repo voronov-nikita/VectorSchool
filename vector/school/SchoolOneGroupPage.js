@@ -32,12 +32,12 @@ export const SchoolOneGroupScreen = ({ route, navigation }) => {
     }, [groupId]);
 
     useEffect(async () => {
-        
         const login = await AsyncStorage.getItem("authToken").then();
-
         try {
-            const response = fetch(`${URL}/user/access_level?login=${login}`);
-            const data = response.json();
+            const response = await fetch(
+                `${URL}/user/access_level?login=${login}`
+            );
+            const data = await response.json();
 
             if (response.ok) {
                 setLevel(data.access_level);
@@ -175,7 +175,7 @@ export const SchoolOneGroupScreen = ({ route, navigation }) => {
                 {students.map((student) => (
                     <View key={student.id} style={styles.studentRow}>
                         <Text style={styles.studentName}>{student.fio}</Text>
-                        {["куратор", "админ"].includes(level) ? (
+                        {["админ"].includes(level) ? (
                             <View style={styles.actions}>
                                 <TouchableOpacity
                                     style={[

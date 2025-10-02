@@ -4,11 +4,11 @@
 #
 # расширяем пространство имен
 
-from flask import Blueprint, jsonify, request
-from database import get_user_by_login, verify_password, get_user_access_level_from_db, get_fighters, group_top_users, add_user
 import sys
 sys.path.append("../")
 
+from flask import Blueprint, jsonify, request
+from server.database.models.user_models import get_user_by_login, verify_password, get_user_access_level_from_db, get_fighters, group_top_users, add_user
 
 user_bp = Blueprint('users', __name__)
 
@@ -28,6 +28,7 @@ def get_profile():
 def login():
     data = request.json
     login_ = data.get('login')
+    print(f"THE LOGIN: {login_}")
     password_ = data.get('password')
     if not login_ or not password_:
         return jsonify({"error": "Укажите логин и пароль"}), 400
