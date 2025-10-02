@@ -294,8 +294,7 @@ export const EventsScreen = () => {
                                                 : ""}
                                         </Text>
                                     </TouchableOpacity>
-                                    {(level === "админ" ||
-                                        level === "куратор") && (
+                                    {(level === "админ") && (
                                         <View style={styles.buttonRow}>
                                             <TouchableOpacity
                                                 style={styles.editBtn}
@@ -336,7 +335,7 @@ export const EventsScreen = () => {
                 </View>
             </ScrollView>
 
-            {(level === "админ" || level === "куратор") && (
+            {(level === "админ") && (
                 <>
                     <TouchableOpacity
                         style={styles.fab}

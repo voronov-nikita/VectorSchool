@@ -3,20 +3,29 @@ from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 from database import *
 from werkzeug.utils import secure_filename
+from endpoints.flask_users import user_bp
+from endpoints.flask_groups import groups_bp
+from endpoints.flask_attendance import attandance_bp
 import os
 # from admin.app import index
 
 # <---------------- Определение основного КОНСТАНТ и зависимостей ---------------->
 
 application = Flask(__name__)
-CORS(application, origins=["*"], methods=["GET", "POST",
-     "PATCH", "DELETE", "OPTIONS"], supports_credentials=True)
 
 UPLOAD_FOLDER = "./uploads"
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+
+
+application.register_blueprint(user_bp)
+application.register_blueprint(groups_bp)
+application.register_blueprint(attandance_bp)
+
+CORS(application, origins=["*"], methods=["GET", "POST",
+     "PATCH", "DELETE", "OPTIONS"], supports_credentials=True)
 
 # <---------------- Определение основного кода ---------------->
 
@@ -34,147 +43,6 @@ def teardown_db(exception):
 # Инициализация базы при запуске
 with application.app_context():
     init_db()
-
-# ----- API ENDPOINTS -----
-
-
-@application.route('/profile', methods=['GET'])
-def get_profile():
-    login = request.args.get('login')
-    if not login:
-        return jsonify({"error": "Логин обязателен"}), 400
-    user = get_user_by_login(login)
-    if not user:
-        return jsonify({"error": "Пользователь не найден"}), 404
-    return jsonify({"fio": user['fio'], "email": user['email']})
-
-
-@application.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    login_ = data.get('login')
-    password_ = data.get('password')
-    if not login_ or not password_:
-        return jsonify({"error": "Укажите логин и пароль"}), 400
-
-    user = get_user_by_login(login_)
-    if user is None or not verify_password(user['password'], password_):
-        return jsonify({"error": "Неверный логин или пароль"}), 401
-
-    return jsonify({
-        "fio": user['fio'],
-        "login": user['login'],
-        "telegram": user['telegram'],
-        "email": user['email'],
-        "phone": user['phone'],
-        "group_name": user['group_name'],
-        "birth_date": user['birth_date'],
-        "access_level": user['access_level'],
-    })
-
-
-# def allowed_file(filename):
-#     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-@application.route('/user/access_level', methods=['GET'])
-def get_user_access_level():
-    login = request.args.get('login')
-    if not login:
-        return jsonify({"error": "Missing 'login' parameter"}), 400
-
-    access_level = get_user_access_level_from_db(login)
-    if access_level:
-        return jsonify({"access_level": access_level})
-    else:
-        print("SERVISE OK")
-        return jsonify({"error": "User not found"}), 404
-
-
-@application.route('/profile/<login>', methods=['GET'])
-def profile(login):
-    user = get_user_by_login(login)
-    if user is None:
-        return jsonify({'error': 'User not found'}), 404
-    return jsonify({
-        'login': user['login'],
-        'fio': user['fio'],
-        'rating': user['rating'],
-        'telegram': user['telegram'],
-        'phone': user['phone'],
-        'group_name': user['group_name'],
-        'birth_date': user['birth_date'],
-        'access_level': user['access_level'],
-        'attendance': user['attendance'],
-        'achievements': user['achievements'].split('\n') if user['achievements'] else []
-    })
-
-
-@application.route('/users', methods=['GET'])
-def fighters_api():
-    search = request.args.get('search', '')
-    sort = request.args.get('sort', 'fio')
-    fighters = get_fighters(sort=sort, search=search)
-    return jsonify({'fighters': fighters})
-
-
-@application.route('/rating', methods=['GET'])
-def rating_api():
-    fighters = get_fighters(sort='rating')
-    top_10 = group_top_users(fighters, max_line=3, top_n=10)
-    return jsonify({'top_10': top_10})
-
-# Дополнительные эндпоинты для групп, студентов, занятий и посещаемости
-# Все это для школы Вектора
-
-
-@application.route('/groups', methods=['GET'])
-def api_get_groups():
-    return jsonify(get_groups())
-
-
-@application.route('/groups', methods=['POST'])
-def api_add_group():
-    data = request.get_json()
-    name = data.get('name')
-    curator = data.get('curator')
-    if not name or not curator:
-        return jsonify({'error': 'Укажите имя группы и куратора'}), 400
-    ok, err = add_group(name, curator)
-    if not ok:
-        return jsonify({'error': err}), 400
-    return jsonify({'result': 'Group added'})
-
-
-@application.route('/groups_with_users', methods=['GET'])
-def get_groups_with_users():
-    db = get_db()
-    rows = db.execute('''
-        SELECT g.name AS group_name, g.curator, u.login, u.fio
-        FROM groups g
-        LEFT JOIN users u ON u.group_name = g.name
-        ORDER BY g.name, u.fio;
-    ''').fetchall()
-
-    groups = {}
-    for row in rows:
-        gn = row['group_name']
-        if gn not in groups:
-            groups[gn] = {
-                'curator': row['curator'],
-                'users': []
-            }
-        if row['login']:
-            groups[gn]['users'].append(
-                {'login': row['login'], 'fio': row['fio']})
-    result = []
-    for group_name, info in groups.items():
-        result.append({
-            'title': f"{group_name} (Куратор: {info['curator']})",
-            'data': info['users'] 
-        })
-
-    return jsonify(result)
 
 
 @application.route('/students', methods=['GET'])
@@ -232,27 +100,6 @@ def api_update_attendance(student_id):
                (new_value, student_id))
     db.commit()
     return jsonify({'attendance': new_value})
-
-
-@application.route('/lessons', methods=['GET'])
-def api_get_lessons():
-    group_id = request.args.get('group_id')
-    lessons = get_lessons(group_id)
-    return jsonify(lessons)
-
-
-@application.route('/lessons', methods=['POST'])
-def api_add_lesson():
-    data = request.get_json()
-    add_lesson(data['group_id'], data['date'], data['lesson_type'])
-    return jsonify({'result': 'Lesson added'})
-
-
-@application.route('/journal', methods=['GET'])
-def api_get_journal():
-    group_id = request.args.get('group_id')
-    journal = get_group_journal(group_id)
-    return jsonify(journal)
 
 
 @application.route('/attendance/bulk', methods=['POST'])

@@ -38,7 +38,6 @@ import { AttendanceScreen } from "./pages/AttendancePage";
 
 // Создаем конфигуратор Drawer и Stack
 const Drawer = createDrawerNavigator();
-const Stack = createStackNavigator();
 
 // Главная функция приложения
 export default function App() {
@@ -133,7 +132,7 @@ export default function App() {
                         options={{
                             headerTitle: "Список группы",
                             headerLeft: () => (
-                                <BackButton adress="SchoolMain" />
+                                <BackButton adress="SchoolGroups" />
                             ),
                             drawerItemStyle: { display: "none" },
                         }}
@@ -224,6 +223,7 @@ export default function App() {
                         options={{
                             title: "Мероприятия",
                             headerTitleAlign: "center",
+                            headerLeft: () => <BackButton adress="SchoolMain"/>,
                         }}
                         component={EventsScreen}
                     />

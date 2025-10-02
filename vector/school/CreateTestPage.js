@@ -26,25 +26,22 @@ export const CreateTestScreen = ({ navigation }) => {
     const [questionType, setQuestionType] = useState("single"); // "single", "multiple", "text"
     const [textAnswer, setTextAnswer] = useState("");
 
-    // Файлы, прикреплённые к создаваемому вопросу
+    // Прикрепленные файлы с превью
     const [attachedFiles, setAttachedFiles] = useState([]);
     const fileInputRefs = useRef([]);
 
     const showModal = useInfoModal();
 
-    // Добавить вариант ответа
     function addAnswer() {
         setAnswers((a) => [...a, ""]);
     }
 
-    // Изменить текст варианта ответа
     function setAnswerText(text, index) {
         const newAnswers = [...answers];
         newAnswers[index] = text;
         setAnswers(newAnswers);
     }
 
-    // Выбор правильных ответов (чекбоксы)
     function toggleCorrectIndex(index) {
         if (questionType === "single") {
             setCorrectIndexes([index]);
@@ -57,14 +54,12 @@ export const CreateTestScreen = ({ navigation }) => {
         }
     }
 
-    // Открыть диалог выбора файла (web)
     const triggerFileSelect = (qIdx) => {
         if (fileInputRefs.current[qIdx]) {
             fileInputRefs.current[qIdx].click();
         }
     };
 
-    // Обработка выбора файла
     const onFileChange = (event, qIdx) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -73,11 +68,15 @@ export const CreateTestScreen = ({ navigation }) => {
             return;
         }
         const newFiles = [...attachedFiles];
-        newFiles[qIdx] = file;
+        newFiles[qIdx] = {
+            file,
+            url: file.type.startsWith("image/")
+                ? URL.createObjectURL(file)
+                : null,
+        };
         setAttachedFiles(newFiles);
     };
 
-    // Добавить вопрос в список
     function addQuestion() {
         if (!questionText.trim()) {
             showModal("Введите текст вопроса");
@@ -93,7 +92,7 @@ export const CreateTestScreen = ({ navigation }) => {
                 type: "text",
                 answers: [textAnswer],
                 correctIndexes: [],
-                file: attachedFiles[questions.length] || null,
+                // Файл не отправляем в теле JSON
             };
             setQuestions((qs) => [...qs, question]);
         } else {
@@ -112,26 +111,42 @@ export const CreateTestScreen = ({ navigation }) => {
                 answers: copiedAnswers,
                 correctIndexes: copiedCorrectIndexes,
                 type: questionType,
-                file: attachedFiles[questions.length] || null,
             };
             setQuestions((qs) => [...qs, question]);
         }
 
-        // Сброс полей формы и файла
         setQuestionText("");
         setAnswers([""]);
         setCorrectIndexes([]);
         setTextAnswer("");
         setQuestionType("single");
+
+        // Подготавливаем attachedFiles, чтобы длина совпадала
         setAttachedFiles((files) => {
             const newFiles = [...files];
             newFiles[questions.length] = null;
             return newFiles;
         });
+
         setShowForm(false);
     }
 
-    // Сохранение теста на сервер (файлы нужно отправлять отдельно по серверной логике)
+    async function uploadFiles(testId) {
+        const formData = new FormData();
+        formData.append("test_id", testId);
+        attachedFiles.forEach((f, idx) => {
+            if (f && f.file) {
+                formData.append(`files[${idx}]`, f.file, f.file.name);
+            }
+        });
+        const resp = await fetch(`${URL}/tests/files_upload`, {
+            method: "POST",
+            body: formData,
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data?.error || "Ошибка загрузки файлов");
+    }
+
     function saveTest() {
         if (
             name.trim() === "" ||
@@ -146,8 +161,14 @@ export const CreateTestScreen = ({ navigation }) => {
             return;
         }
 
-        // Убираем из вопросов объекты file перед отправкой JSON
-        const questionsToSend = questions.map(({ file, ...q }) => q);
+        const questionsToSend = questions.map(
+            ({ answers, correctIndexes, text, type }) => ({
+                text,
+                answers,
+                correctIndexes,
+                type,
+            })
+        );
 
         const payload = {
             name,
@@ -162,8 +183,15 @@ export const CreateTestScreen = ({ navigation }) => {
             body: JSON.stringify(payload),
         })
             .then((res) => res.json())
-            .then(() => {
-                // Тут можно добавить логику для загрузки файлов если нужно
+            .then(async (data) => {
+                if (data.id) {
+                    try {
+                        await uploadFiles(data.id);
+                    } catch (e) {
+                        showModal(e.message);
+                        return;
+                    }
+                }
                 navigation.goBack();
             })
             .catch(() => showModal("Ошибка при сохранении теста"));
@@ -245,15 +273,31 @@ export const CreateTestScreen = ({ navigation }) => {
                                     ? "Множественный выбор"
                                     : "Текстовый ответ"}
                             </Text>
-                            {item.file && (
+                            {attachedFiles[index] &&
+                                attachedFiles[index].url && (
+                                    <img
+                                        src={attachedFiles[index].url}
+                                        alt="Preview"
+                                        style={{
+                                            width: 120,
+                                            height: "auto",
+                                            marginTop: 6,
+                                            borderRadius: 6,
+                                        }}
+                                    />
+                                )}
+                            {attachedFiles[index] && (
                                 <Text
                                     style={{
                                         marginTop: 6,
+                                        fontSize: 13,
                                         fontStyle: "italic",
                                         color: "#555",
+                                        marginLeft: 14,
                                     }}
                                 >
-                                    Прикреплен файл: {item.file.name}
+                                    Прикреплен файл:{" "}
+                                    {attachedFiles[index].file.name}
                                 </Text>
                             )}
                         </View>
@@ -268,7 +312,6 @@ export const CreateTestScreen = ({ navigation }) => {
                             value={questionText}
                             onChangeText={setQuestionText}
                         />
-
                         {questionType === "text" ? (
                             <TextInput
                                 style={[styles.input, { marginTop: 10 }]}
@@ -387,13 +430,26 @@ export const CreateTestScreen = ({ navigation }) => {
                             </Text>
                         </TouchableOpacity>
 
+                        {attachedFiles[questions.length] &&
+                            attachedFiles[questions.length].url && (
+                                <img
+                                    src={attachedFiles[questions.length].url}
+                                    alt="Preview"
+                                    style={{
+                                        width: 120,
+                                        height: "auto",
+                                        marginTop: 6,
+                                        borderRadius: 6,
+                                    }}
+                                />
+                            )}
+
                         {attachedFiles[questions.length] && (
                             <Text style={styles.fileName}>
-                                {attachedFiles[questions.length].name}
+                                {attachedFiles[questions.length].file.name}
                             </Text>
                         )}
 
-                        {/* Скрытый input для web */}
                         {Platform.OS === "web" && (
                             <input
                                 type="file"
@@ -499,11 +555,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         elevation: 4,
     },
-    saveButtonText: {
-        fontWeight: "700",
-        fontSize: 18,
-        color: "#fff",
-    },
+    saveButtonText: { fontWeight: "700", fontSize: 18, color: "#fff" },
     addButton: {
         backgroundColor: "#f1f1f1",
         borderRadius: 20,
@@ -514,11 +566,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#ddd",
     },
-    addButtonText: {
-        color: "#555",
-        fontWeight: "700",
-        fontSize: 16,
-    },
+    addButtonText: { color: "#555", fontWeight: "700", fontSize: 16 },
     answerRow: {
         justifyContent: "center",
         flexDirection: "row",
@@ -532,9 +580,7 @@ const styles = StyleSheet.create({
         borderColor: "#227be3",
         borderRadius: 6,
     },
-    checkedBox: {
-        backgroundColor: "#227be3",
-    },
+    checkedBox: { backgroundColor: "#227be3" },
     addAnswerBtn: {
         backgroundColor: "#e6e6e6",
         padding: 11,
@@ -542,21 +588,14 @@ const styles = StyleSheet.create({
         marginBottom: 18,
         alignItems: "center",
     },
-    addAnswerText: {
-        color: "#227be3",
-        fontWeight: "700",
-        fontSize: 15,
-    },
+    addAnswerText: { color: "#227be3", fontWeight: "700", fontSize: 15 },
     selectLabel: {
         color: "#227be3",
         fontWeight: "700",
         fontSize: 16,
         marginBottom: 10,
     },
-    radioButtons: {
-        marginBottom: 11,
-        flexDirection: "row",
-    },
+    radioButtons: { marginBottom: 11, flexDirection: "row" },
     radioOption: {
         borderWidth: 1,
         borderColor: "#227be3",
@@ -566,17 +605,9 @@ const styles = StyleSheet.create({
         marginTop: 14,
         borderRadius: 14,
     },
-    radioSelected: {
-        backgroundColor: "#227be3",
-    },
-    radioText: {
-        color: "#227be3",
-        fontWeight: "700",
-        fontSize: 15,
-    },
-    radioTextSelected: {
-        color: "#fff",
-    },
+    radioSelected: { backgroundColor: "#227be3" },
+    radioText: { color: "#227be3", fontWeight: "700", fontSize: 15 },
+    radioTextSelected: { color: "#fff" },
     attachButton: {
         backgroundColor: "#ddd",
         paddingVertical: 10,
@@ -584,14 +615,18 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignSelf: "flex-start",
     },
-    attachButtonText: {
-        color: "#333",
-        fontSize: 14,
-    },
+    attachButtonText: { color: "#333", fontSize: 14 },
     fileName: {
         marginTop: 6,
         fontSize: 13,
         fontStyle: "italic",
         color: "#555",
+    },
+    subTitle: {
+        fontSize: 20,
+        fontWeight: "600",
+        marginBottom: 10,
+        color: "#232946",
+        marginLeft: 4,
     },
 });
