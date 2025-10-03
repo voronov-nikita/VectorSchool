@@ -1,4 +1,4 @@
-import uuid
+
 from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 from database.models.achievement_models import *
@@ -14,8 +14,8 @@ from endpoints.flask_users import user_bp
 from endpoints.flask_groups import groups_bp
 from endpoints.flask_attendance import attandance_bp
 from endpoints.flask_students import students_bp
+from endpoints.flask_test import test_bp
 import os
-# from admin.app import index
 
 # <---------------- Определение основного КОНСТАНТ и зависимостей ---------------->
 
@@ -27,7 +27,7 @@ MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-
+application.register_blueprint(test_bp)
 application.register_blueprint(user_bp)
 application.register_blueprint(groups_bp)
 application.register_blueprint(students_bp)
@@ -355,7 +355,6 @@ def get_user_achievements(login):
         ORDER BY date_obtained DESC
     ''', (login,)).fetchall()
     return [dict(a) for a in achievements]
-
 
 if __name__ == '__main__':
     application.run(host='0.0.0.0', debug=True)

@@ -27,6 +27,8 @@ def init_db():
     from database.models.test_models import create_test_tables
     from database.models.achievement_models import create_achievement_tables
     from database.models.event_models import create_event_tables
+    from database.models.test_models import create_test_tables
+    
 
     create_user_tables(db)
     create_group_tables(db)

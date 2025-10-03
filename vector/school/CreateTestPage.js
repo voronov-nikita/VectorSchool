@@ -4,629 +4,297 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    FlatList,
-    StyleSheet,
     ScrollView,
     Platform,
 } from "react-native";
 
-import { useInfoModal } from "../components/InfoModal";
+import { QuestionFormCard } from "./QuestionFormCard"; // компонент вопроса из предыдущего ответа
 import { URL } from "../config";
 
 export const CreateTestScreen = ({ navigation }) => {
     const [name, setName] = useState("");
     const [maxScore, setMaxScore] = useState("");
     const [scorePerQuestion, setScorePerQuestion] = useState("");
-    const [questions, setQuestions] = useState([]);
-    const [showForm, setShowForm] = useState(false);
+    const [questions, setQuestions] = useState([
+        {
+            text: "",
+            type: "single",
+            options: [""],
+            required: false,
+            score: 0,
+            file: null,
+        },
+    ]);
 
-    const [questionText, setQuestionText] = useState("");
-    const [answers, setAnswers] = useState([""]);
-    const [correctIndexes, setCorrectIndexes] = useState([]);
-    const [questionType, setQuestionType] = useState("single"); // "single", "multiple", "text"
-    const [textAnswer, setTextAnswer] = useState("");
+    // Управление вопросами
+    const handleChangeQuestion = (index, q) => {
+        setQuestions((prev) => prev.map((item, i) => (i === index ? q : item)));
+    };
 
-    // Прикрепленные файлы с превью
-    const [attachedFiles, setAttachedFiles] = useState([]);
+    const handleDeleteQuestion = (index) => {
+        setQuestions((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    // Прикрепление файлов к вопросу (только React Native Web)
     const fileInputRefs = useRef([]);
 
-    const showModal = useInfoModal();
-
-    function addAnswer() {
-        setAnswers((a) => [...a, ""]);
-    }
-
-    function setAnswerText(text, index) {
-        const newAnswers = [...answers];
-        newAnswers[index] = text;
-        setAnswers(newAnswers);
-    }
-
-    function toggleCorrectIndex(index) {
-        if (questionType === "single") {
-            setCorrectIndexes([index]);
-        } else if (questionType === "multiple") {
-            if (correctIndexes.includes(index)) {
-                setCorrectIndexes(correctIndexes.filter((i) => i !== index));
-            } else {
-                setCorrectIndexes([...correctIndexes, index]);
-            }
-        }
-    }
-
-    const triggerFileSelect = (qIdx) => {
-        if (fileInputRefs.current[qIdx]) {
-            fileInputRefs.current[qIdx].click();
+    const triggerFileSelect = (index) => {
+        if (fileInputRefs.current[index]) {
+            fileInputRefs.current[index].click();
         }
     };
 
-    const onFileChange = (event, qIdx) => {
+    const onFileChange = (event, index) => {
         const file = event.target.files[0];
         if (!file) return;
         if (file.size > 20 * 1024 * 1024) {
-            showModal("Файл не должен превышать 20 МБ");
+            alert("Файл превышает 20МБ");
             return;
         }
-        const newFiles = [...attachedFiles];
-        newFiles[qIdx] = {
-            file,
-            url: file.type.startsWith("image/")
-                ? URL.createObjectURL(file)
-                : null,
-        };
-        setAttachedFiles(newFiles);
+        handleChangeQuestion(index, { ...questions[index], file });
     };
 
-    function addQuestion() {
-        if (!questionText.trim()) {
-            showModal("Введите текст вопроса");
+    // Добавить новый вопрос пустой
+    const addQuestion = () => {
+        setQuestions((prev) => [
+            ...prev,
+            {
+                text: "",
+                type: "single",
+                options: [""],
+                required: false,
+                score: 0,
+                file: null,
+            },
+        ]);
+    };
+
+    // Проверка и сохранение теста
+    const saveTest = async () => {
+        if (!name.trim()) {
+            alert("Название теста обязательно");
             return;
         }
-        if (questionType === "text") {
-            if (!textAnswer.trim()) {
-                showModal("Введите правильный ответ");
-                return;
-            }
-            const question = {
-                text: questionText,
-                type: "text",
-                answers: [textAnswer],
-                correctIndexes: [],
-                // Файл не отправляем в теле JSON
-            };
-            setQuestions((qs) => [...qs, question]);
-        } else {
-            if (answers.some((a) => a.trim() === "")) {
-                showModal("Все варианты ответа должны быть заполнены");
-                return;
-            }
-            if (correctIndexes.length === 0) {
-                showModal("Выберите хотя бы один правильный ответ");
-                return;
-            }
-            const copiedAnswers = [...answers];
-            const copiedCorrectIndexes = [...correctIndexes];
-            const question = {
-                text: questionText,
-                answers: copiedAnswers,
-                correctIndexes: copiedCorrectIndexes,
-                type: questionType,
-            };
-            setQuestions((qs) => [...qs, question]);
-        }
-
-        setQuestionText("");
-        setAnswers([""]);
-        setCorrectIndexes([]);
-        setTextAnswer("");
-        setQuestionType("single");
-
-        // Подготавливаем attachedFiles, чтобы длина совпадала
-        setAttachedFiles((files) => {
-            const newFiles = [...files];
-            newFiles[questions.length] = null;
-            return newFiles;
-        });
-
-        setShowForm(false);
-    }
-
-    async function uploadFiles(testId) {
-        const formData = new FormData();
-        formData.append("test_id", testId);
-        attachedFiles.forEach((f, idx) => {
-            if (f && f.file) {
-                formData.append(`files[${idx}]`, f.file, f.file.name);
-            }
-        });
-        const resp = await fetch(`${URL}/tests/files_upload`, {
-            method: "POST",
-            body: formData,
-        });
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data?.error || "Ошибка загрузки файлов");
-    }
-
-    function saveTest() {
+        const maxScoreNum = Number(maxScore);
+        const scorePerQNum = Number(scorePerQuestion);
         if (
-            name.trim() === "" ||
-            maxScore.trim() === "" ||
-            scorePerQuestion.trim() === "" ||
-            questions.length !==
-                Math.floor(Number(maxScore) / Number(scorePerQuestion))
+            !maxScoreNum ||
+            !scorePerQNum ||
+            maxScoreNum < 1 ||
+            scorePerQNum < 1
         ) {
-            showModal(
-                "Проверьте, что все обязательные поля заполнены и количество вопросов совпадает с рассчитанным."
+            alert(
+                "Максимальные баллы и баллы за вопрос должны быть положительными числами"
+            );
+            return;
+        }
+        if (questions.length === 0) {
+            alert("Добавьте хотя бы один вопрос");
+            return;
+        }
+        const sumScores = questions.reduce((acc, q) => acc + (q.score || 0), 0);
+        if (sumScores !== maxScoreNum) {
+            alert(
+                "Сумма баллов вопросов должна быть равна максимальному баллу"
             );
             return;
         }
 
-        const questionsToSend = questions.map(
-            ({ answers, correctIndexes, text, type }) => ({
-                text,
-                answers,
-                correctIndexes,
-                type,
-            })
-        );
+        // Формируем вопрос с нужным форматом для сервера
+        const questionsToSend = questions.map((q) => ({
+            text: q.text,
+            type: q.type,
+            answers: q.options || (q.type === "text" ? [""] : []),
+            correctIndexes: [], // Можно расширить, добавить управление correctIndexes
+            score: q.score || 0,
+        }));
 
-        const payload = {
-            name,
-            max_score: Number(maxScore),
-            score_per_question: Number(scorePerQuestion),
-            questions: questionsToSend,
-        };
+        // Отправляем основной тест без файлов
+        try {
+            const resp = await fetch(`${URL}/tests`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name,
+                    max_score: maxScoreNum,
+                    score_per_question: scorePerQNum,
+                    questions: questionsToSend,
+                }),
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data.id)
+                throw new Error(data.error || "Ошибка сохранения теста");
 
-        fetch(`${URL}/tests`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        })
-            .then((res) => res.json())
-            .then(async (data) => {
-                if (data.id) {
-                    try {
-                        await uploadFiles(data.id);
-                    } catch (e) {
-                        showModal(e.message);
-                        return;
-                    }
+            // Отправляем файлы для каждого вопроса, если есть
+            const formData = new FormData();
+            formData.append("test_id", data.id);
+
+            questions.forEach((q, idx) => {
+                if (q.file) {
+                    formData.append(`files[${idx}]`, q.file, q.file.name);
                 }
-                navigation.goBack();
-            })
-            .catch(() => showModal("Ошибка при сохранении теста"));
-    }
+            });
+
+            const fileResp = await fetch(`${URL}/tests/files_upload`, {
+                method: "POST",
+                body: formData,
+            });
+            const fileData = await fileResp.json();
+            if (!fileResp.ok)
+                throw new Error(fileData.error || "Ошибка загрузки файлов");
+
+            alert("Тест успешно сохранён");
+            navigation.goBack();
+        } catch (e) {
+            alert("Ошибка: " + e.message);
+        }
+    };
 
     return (
-        <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.title}>Создание теста</Text>
+        <View style={{ flex: 1, padding: 16, backgroundColor: "#181A22" }}>
+            <ScrollView>
+                <Text
+                    style={{ fontSize: 28, color: "#eebbc3", marginBottom: 12 }}
+                >
+                    Создание теста
+                </Text>
                 <TextInput
-                    style={styles.input}
-                    placeholder="* Название теста"
+                    placeholder="Название теста"
+                    placeholderTextColor="#666"
                     value={name}
                     onChangeText={setName}
+                    style={{
+                        backgroundColor: "#222436",
+                        color: "#fff",
+                        padding: 10,
+                        fontSize: 18,
+                        borderRadius: 6,
+                        marginBottom: 10,
+                    }}
                 />
-                <TextInput
-                    style={styles.input}
-                    placeholder="* Максимальный балл"
-                    value={maxScore}
-                    onChangeText={setMaxScore}
-                    keyboardType="numeric"
-                />
-                <TextInput
-                    style={styles.input}
-                    placeholder="* Балл за каждое задание"
-                    value={scorePerQuestion}
-                    onChangeText={setScorePerQuestion}
-                    keyboardType="numeric"
-                />
+                <View
+                    style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        marginBottom: 10,
+                    }}
+                >
+                    <TextInput
+                        placeholder="Максимальный балл"
+                        placeholderTextColor="#666"
+                        keyboardType="numeric"
+                        value={maxScore}
+                        onChangeText={setMaxScore}
+                        style={{
+                            flex: 1,
+                            backgroundColor: "#222436",
+                            color: "#fff",
+                            padding: 10,
+                            fontSize: 18,
+                            borderRadius: 6,
+                            marginRight: 6,
+                        }}
+                    />
+                    <TextInput
+                        placeholder="Балл за вопрос"
+                        placeholderTextColor="#666"
+                        keyboardType="numeric"
+                        value={scorePerQuestion}
+                        onChangeText={setScorePerQuestion}
+                        style={{
+                            flex: 1,
+                            backgroundColor: "#222436",
+                            color: "#fff",
+                            padding: 10,
+                            fontSize: 18,
+                            borderRadius: 6,
+                            marginLeft: 6,
+                        }}
+                    />
+                </View>
 
-                <Text style={styles.subTitle}>Вопросы</Text>
-                <FlatList
-                    data={questions}
-                    keyExtractor={(_, idx) => String(idx)}
-                    renderItem={({ item, index }) => (
-                        <View style={styles.questionCard}>
-                            <Text style={styles.questionText}>
-                                {index + 1}. {item.text}
-                            </Text>
-                            {item.type === "text" ? (
-                                <Text
-                                    style={{ color: "#eebbc3", marginLeft: 14 }}
-                                >
-                                    Правильный ответ: {item.answers[0]}
-                                </Text>
-                            ) : (
-                                item.answers.map((ans, i) => (
-                                    <Text
-                                        key={i}
-                                        style={{
-                                            color: item.correctIndexes.includes(
-                                                i
-                                            )
-                                                ? "#eebbc3"
-                                                : "#ccc",
-                                            fontWeight:
-                                                item.correctIndexes.includes(i)
-                                                    ? "700"
-                                                    : "400",
-                                            marginLeft: 14,
-                                            marginVertical: 2,
-                                        }}
-                                    >
-                                        - {ans}
-                                    </Text>
-                                ))
-                            )}
-                            <Text
-                                style={{
-                                    marginTop: 2,
-                                    fontSize: 12,
-                                    color: "#aaa",
-                                }}
-                            >
-                                Тип:{" "}
-                                {item.type === "single"
-                                    ? "Одиночный выбор"
-                                    : item.type === "multiple"
-                                    ? "Множественный выбор"
-                                    : "Текстовый ответ"}
-                            </Text>
-                            {attachedFiles[index] &&
-                                attachedFiles[index].url && (
-                                    <img
-                                        src={attachedFiles[index].url}
-                                        alt="Preview"
-                                        style={{
-                                            width: 120,
-                                            height: "auto",
-                                            marginTop: 6,
-                                            borderRadius: 6,
-                                        }}
-                                    />
-                                )}
-                            {attachedFiles[index] && (
-                                <Text
-                                    style={{
-                                        marginTop: 6,
-                                        fontSize: 13,
-                                        fontStyle: "italic",
-                                        color: "#555",
-                                        marginLeft: 14,
-                                    }}
-                                >
-                                    Прикреплен файл:{" "}
-                                    {attachedFiles[index].file.name}
-                                </Text>
-                            )}
-                        </View>
-                    )}
-                />
-
-                {showForm ? (
-                    <View style={styles.form}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Вопрос"
-                            value={questionText}
-                            onChangeText={setQuestionText}
+                {/* Список вопросов */}
+                {questions.map((q, i) => (
+                    <View key={i} style={{ marginBottom: 16 }}>
+                        <QuestionFormCard
+                            question={q}
+                            index={i}
+                            onChange={handleChangeQuestion}
+                            onDelete={() => handleDeleteQuestion(i)}
+                            onAttachFile={triggerFileSelect}
                         />
-                        {questionType === "text" ? (
-                            <TextInput
-                                style={[styles.input, { marginTop: 10 }]}
-                                placeholder="Правильный ответ (текст)"
-                                value={textAnswer}
-                                onChangeText={setTextAnswer}
-                            />
-                        ) : (
-                            <>
-                                <View>
-                                    {answers.map((ans, idx) => (
-                                        <View
-                                            key={idx}
-                                            style={styles.answerRow}
-                                        >
-                                            <TouchableOpacity
-                                                style={[
-                                                    styles.checkbox,
-                                                    correctIndexes.includes(
-                                                        idx
-                                                    ) && styles.checkedBox,
-                                                ]}
-                                                onPress={() =>
-                                                    toggleCorrectIndex(idx)
-                                                }
-                                            />
-                                            <TextInput
-                                                style={[
-                                                    styles.input,
-                                                    { flex: 1, marginLeft: 10 },
-                                                ]}
-                                                placeholder={`Ответ ${idx + 1}`}
-                                                value={ans}
-                                                onChangeText={(text) =>
-                                                    setAnswerText(text, idx)
-                                                }
-                                            />
-                                        </View>
-                                    ))}
-                                </View>
-                                <TouchableOpacity
-                                    style={styles.addAnswerBtn}
-                                    onPress={addAnswer}
-                                >
-                                    <Text style={styles.addAnswerText}>
-                                        Добавить вариант ответа
-                                    </Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
-
-                        <Text style={styles.selectLabel}>Тип вопроса:</Text>
-                        <View style={styles.radioButtons}>
-                            <TouchableOpacity
-                                style={[
-                                    styles.radioOption,
-                                    questionType === "single" &&
-                                        styles.radioSelected,
-                                ]}
-                                onPress={() => setQuestionType("single")}
-                            >
-                                <Text
-                                    style={[
-                                        styles.radioText,
-                                        questionType === "single" &&
-                                            styles.radioTextSelected,
-                                    ]}
-                                >
-                                    Одиночный
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.radioOption,
-                                    questionType === "multiple" &&
-                                        styles.radioSelected,
-                                ]}
-                                onPress={() => setQuestionType("multiple")}
-                            >
-                                <Text
-                                    style={[
-                                        styles.radioText,
-                                        questionType === "multiple" &&
-                                            styles.radioTextSelected,
-                                    ]}
-                                >
-                                    Множественный
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.radioOption,
-                                    questionType === "text" &&
-                                        styles.radioSelected,
-                                ]}
-                                onPress={() => setQuestionType("text")}
-                            >
-                                <Text
-                                    style={[
-                                        styles.radioText,
-                                        questionType === "text" &&
-                                            styles.radioTextSelected,
-                                    ]}
-                                >
-                                    Текстовый
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <TouchableOpacity
-                            style={[styles.attachButton, { marginTop: 10 }]}
-                            onPress={() => triggerFileSelect(questions.length)}
-                        >
-                            <Text style={styles.attachButtonText}>
-                                Прикрепить файл к вопросу (до 20 МБ)
-                            </Text>
-                        </TouchableOpacity>
-
-                        {attachedFiles[questions.length] &&
-                            attachedFiles[questions.length].url && (
-                                <img
-                                    src={attachedFiles[questions.length].url}
-                                    alt="Preview"
-                                    style={{
-                                        width: 120,
-                                        height: "auto",
-                                        marginTop: 6,
-                                        borderRadius: 6,
-                                    }}
-                                />
-                            )}
-
-                        {attachedFiles[questions.length] && (
-                            <Text style={styles.fileName}>
-                                {attachedFiles[questions.length].file.name}
-                            </Text>
-                        )}
-
+                        {/* Скрытый input для загрузки файла */}
                         {Platform.OS === "web" && (
                             <input
                                 type="file"
                                 style={{ display: "none" }}
-                                ref={(el) =>
-                                    (fileInputRefs.current[questions.length] =
-                                        el)
-                                }
-                                onChange={(e) =>
-                                    onFileChange(e, questions.length)
-                                }
+                                ref={(el) => (fileInputRefs.current[i] = el)}
+                                onChange={(e) => onFileChange(e, i)}
                             />
                         )}
-
-                        <TouchableOpacity
-                            style={styles.formButton}
-                            onPress={addQuestion}
-                        >
-                            <Text>Добавить вопрос</Text>
-                        </TouchableOpacity>
+                        <TextInput
+                            placeholder="Баллы за вопрос"
+                            placeholderTextColor="#666"
+                            keyboardType="numeric"
+                            value={q.score ? q.score.toString() : ""}
+                            style={{
+                                backgroundColor: "#222436",
+                                color: "#fff",
+                                padding: 8,
+                                fontSize: 16,
+                                borderRadius: 6,
+                                marginTop: 6,
+                            }}
+                            onChangeText={(text) => {
+                                const val = parseInt(text) || 0;
+                                handleChangeQuestion(i, { ...q, score: val });
+                            }}
+                        />
                     </View>
-                ) : (
-                    <TouchableOpacity
-                        style={styles.addButton}
-                        onPress={() => setShowForm(true)}
-                    >
-                        <Text style={styles.addButtonText}>
-                            Добавить вопрос
-                        </Text>
-                    </TouchableOpacity>
-                )}
-            </ScrollView>
+                ))}
 
-            <TouchableOpacity style={styles.saveButton} onPress={saveTest}>
-                <Text style={styles.saveButtonText}>Сохранить тест</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={addQuestion}
+                    style={{
+                        backgroundColor: "#eebbc3",
+                        alignItems: "center",
+                        padding: 14,
+                        borderRadius: 10,
+                        marginBottom: 24,
+                    }}
+                >
+                    <Text
+                        style={{
+                            fontWeight: "700",
+                            fontSize: 16,
+                            color: "#181A22",
+                        }}
+                    >
+                        Добавить вопрос
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={saveTest}
+                    style={{
+                        backgroundColor: "tomato",
+                        padding: 16,
+                        borderRadius: 10,
+                        alignItems: "center",
+                        marginBottom: 36,
+                    }}
+                >
+                    <Text
+                        style={{
+                            color: "white",
+                            fontSize: 18,
+                            fontWeight: "700",
+                        }}
+                    >
+                        Сохранить тест
+                    </Text>
+                </TouchableOpacity>
+            </ScrollView>
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#fff",
-        paddingHorizontal: 20,
-        paddingTop: 20,
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: "700",
-        color: "#232946",
-        marginBottom: 20,
-        marginLeft: 4,
-    },
-    input: {
-        backgroundColor: "#f1f1f1",
-        color: "#232946",
-        borderRadius: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        fontSize: 16,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: "#ddd",
-    },
-    questionCard: {
-        backgroundColor: "#f1f1f1",
-        padding: 14,
-        borderRadius: 9,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: "#ddd",
-    },
-    questionText: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: "#232946",
-        marginBottom: 8,
-    },
-    form: {
-        backgroundColor: "#f9f9f9",
-        padding: 15,
-        borderRadius: 12,
-        marginVertical: 10,
-        borderWidth: 1,
-        borderColor: "#ccc",
-        marginBottom: "10%",
-    },
-    formButton: {
-        marginTop: 14,
-        backgroundColor: "#227be3",
-        borderRadius: 8,
-        paddingVertical: 14,
-        alignItems: "center",
-    },
-    saveButton: {
-        backgroundColor: "#227be3",
-        borderRadius: 20,
-        paddingVertical: 15,
-        marginHorizontal: 20,
-        marginBottom: 22,
-        alignItems: "center",
-        justifyContent: "center",
-        elevation: 4,
-    },
-    saveButtonText: { fontWeight: "700", fontSize: 18, color: "#fff" },
-    addButton: {
-        backgroundColor: "#f1f1f1",
-        borderRadius: 20,
-        paddingVertical: 14,
-        marginTop: 8,
-        marginBottom: 22,
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: "#ddd",
-    },
-    addButtonText: { color: "#555", fontWeight: "700", fontSize: 16 },
-    answerRow: {
-        justifyContent: "center",
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 12,
-    },
-    checkbox: {
-        width: 24,
-        height: 24,
-        borderWidth: 2,
-        borderColor: "#227be3",
-        borderRadius: 6,
-    },
-    checkedBox: { backgroundColor: "#227be3" },
-    addAnswerBtn: {
-        backgroundColor: "#e6e6e6",
-        padding: 11,
-        borderRadius: 11,
-        marginBottom: 18,
-        alignItems: "center",
-    },
-    addAnswerText: { color: "#227be3", fontWeight: "700", fontSize: 15 },
-    selectLabel: {
-        color: "#227be3",
-        fontWeight: "700",
-        fontSize: 16,
-        marginBottom: 10,
-    },
-    radioButtons: { marginBottom: 11, flexDirection: "row" },
-    radioOption: {
-        borderWidth: 1,
-        borderColor: "#227be3",
-        paddingVertical: 9,
-        paddingHorizontal: 28,
-        marginRight: 12,
-        marginTop: 14,
-        borderRadius: 14,
-    },
-    radioSelected: { backgroundColor: "#227be3" },
-    radioText: { color: "#227be3", fontWeight: "700", fontSize: 15 },
-    radioTextSelected: { color: "#fff" },
-    attachButton: {
-        backgroundColor: "#ddd",
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        borderRadius: 8,
-        alignSelf: "flex-start",
-    },
-    attachButtonText: { color: "#333", fontSize: 14 },
-    fileName: {
-        marginTop: 6,
-        fontSize: 13,
-        fontStyle: "italic",
-        color: "#555",
-    },
-    subTitle: {
-        fontSize: 20,
-        fontWeight: "600",
-        marginBottom: 10,
-        color: "#232946",
-        marginLeft: 4,
-    },
-});

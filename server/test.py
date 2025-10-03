@@ -1,5 +1,5 @@
 import sqlite3
-from database import add_user
+from database.models.user_models import add_user
 from main import application
 
 

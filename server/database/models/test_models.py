@@ -1,4 +1,13 @@
+# database/test_models.py
+
 from database.db_connection import get_db
+from werkzeug.utils import secure_filename
+import uuid
+import os
+
+UPLOAD_FOLDER = "./uploads"
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
+
 
 def create_test_tables(db):
     db.execute('''
@@ -6,7 +15,8 @@ def create_test_tables(db):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             max_score INTEGER NOT NULL,
-            score_per_question INTEGER NOT NULL
+            score_per_question INTEGER NOT NULL,
+            image_path TEXT DEFAULT NULL
         );
     ''')
     db.execute('''
@@ -15,6 +25,7 @@ def create_test_tables(db):
             test_id INTEGER NOT NULL,
             text TEXT NOT NULL,
             type TEXT NOT NULL CHECK(type IN ('single', 'multiple', 'text')),
+            score INTEGER DEFAULT 0,
             FOREIGN KEY(test_id) REFERENCES tests(id)
         );
     ''')
@@ -27,80 +38,72 @@ def create_test_tables(db):
             FOREIGN KEY(question_id) REFERENCES test_questions(id)
         );
     ''')
-    db.execute('''
-        CREATE TABLE IF NOT EXISTS test_results (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_login TEXT NOT NULL,
-            test_id INTEGER NOT NULL,
-            question_index INTEGER NOT NULL,
-            answer_text TEXT,
-            file_path TEXT,
-            score INTEGER DEFAULT 0,
-            checked INTEGER DEFAULT 0,
-            FOREIGN KEY(test_id) REFERENCES tests(id),
-            FOREIGN KEY(user_login) REFERENCES users(login)
-        );
-    ''')
 
 
-def add_test_with_questions(test_data):
+def add_test_with_questions(test_data, image_files=None):
     db = get_db()
-    
     cursor = db.cursor()
     cursor.execute('''
-        INSERT INTO tests (name, max_score, score_per_question)
-        VALUES (?, ?, ?)
+        INSERT INTO tests (name, max_score, score_per_question, image_path)
+        VALUES (?, ?, ?, NULL)
     ''', (test_data['name'], test_data['max_score'], test_data['score_per_question']))
     test_id = cursor.lastrowid
 
-    for q in test_data['questions']:
+    # Сохраняем вопросы и ответы
+    for idx, question in enumerate(test_data.get('questions', [])):
         cursor.execute('''
-            INSERT INTO test_questions (test_id, text, type)
-            VALUES (?, ?, ?)
-        ''', (test_id, q['text'], q['type']))
-        q_id = cursor.lastrowid
+            INSERT INTO test_questions (test_id, text, type, score)
+            VALUES (?, ?, ?, ?)
+        ''', (test_id, question['text'], question['type'], question.get('score', 0)))
+        question_id = cursor.lastrowid
 
-        if q['type'] in ('single', 'multiple'):
-            for idx, ans_text in enumerate(q['answers']):
-                is_correct = 1 if idx in q['correctIndexes'] else 0
+        # Сохраняем варианты ответов
+        if question['type'] in ('single', 'multiple'):
+            correct_indexes = set(question.get('correctIndexes', []))
+            for i, ans_text in enumerate(question.get('answers', [])):
+                is_correct = 1 if i in correct_indexes else 0
                 cursor.execute('''
                     INSERT INTO test_answers (question_id, answer_text, is_correct)
                     VALUES (?, ?, ?)
-                ''', (q_id, ans_text, is_correct))
-        elif q['type'] == 'text':
-            correct_answer = q['answers'][0] if q['answers'] else ""
+                ''', (question_id, ans_text, is_correct))
+        elif question['type'] == 'text':
+            ans_text = question.get('answers', [''])[0]
             cursor.execute('''
                 INSERT INTO test_answers (question_id, answer_text, is_correct)
                 VALUES (?, ?, 1)
-            ''', (q_id, correct_answer))
+            ''', (question_id, ans_text))
+
     db.commit()
     return test_id
 
 
+def save_uploaded_files(test_id, files_dict):
+    db = get_db()
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+
+    for key in files_dict:
+        if not key.startswith("files["):
+            continue
+        file = files_dict[key]
+        idx_str = key[key.find("[") + 1:key.find("]")]
+        try:
+            question_index = int(idx_str)
+        except ValueError:
+            continue
+        if file.content_length > MAX_FILE_SIZE:
+            continue
+        filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
+        file.save(os.path.join(UPLOAD_FOLDER, filename))
+
+        # Свяжем файл с вопросом, можно сохранять в базе (требуется доработка)
+        # Например:
+        # db.execute('UPDATE test_questions SET image_path = ? WHERE test_id = ? AND id = ?', (filename, test_id, question_id))
+
+    db.commit()
+
+
 def get_all_tests():
     db = get_db()
-    
-    tests = db.execute('SELECT * FROM tests').fetchall()
-    result = []
-    for t in tests:
-        test = dict(t)
-        questions = db.execute(
-            'SELECT id, text, type FROM test_questions WHERE test_id=?', (t['id'],)).fetchall()
-        test_questions = []
-        for q in questions:
-            question = dict(q)
-            if question['type'] in ('single', 'multiple'):
-                answers = db.execute(
-                    'SELECT answer_text, is_correct FROM test_answers WHERE question_id = ?', (q['id'],)).fetchall()
-                question['answers'] = [a['answer_text'] for a in answers]
-                question['correctIndexes'] = [
-                    i for i, a in enumerate(answers) if a['is_correct'] == 1]
-            elif question['type'] == 'text':
-                ans = db.execute(
-                    'SELECT answer_text FROM test_answers WHERE question_id = ? AND is_correct=1', (q['id'],)).fetchone()
-                question['answers'] = [ans['answer_text']] if ans else []
-                question['correctIndexes'] = []
-            test_questions.append(question)
-        test['questions'] = test_questions
-        result.append(test)
-    return result
+    result = db.execute('SELECT * FROM tests').fetchall()
+    return [dict(a) for a in result]

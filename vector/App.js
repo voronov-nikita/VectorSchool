@@ -57,6 +57,7 @@ export default function App() {
                         name="Auth"
                         options={{
                             headerShown: false,
+                            title: 'Авторизация',
                             drawerItemStyle: { display: "none" },
                         }}
                         component={AuthScreen}
