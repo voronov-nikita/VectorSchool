@@ -15,6 +15,7 @@ from endpoints.flask_groups import groups_bp
 from endpoints.flask_attendance import attandance_bp
 from endpoints.flask_students import students_bp
 from endpoints.flask_test import test_bp
+from endpoints.flask_quize import quize_bp
 import os
 
 # <---------------- Определение основного КОНСТАНТ и зависимостей ---------------->
@@ -29,6 +30,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 application.register_blueprint(test_bp)
 application.register_blueprint(user_bp)
+application.register_blueprint(quize_bp)
 application.register_blueprint(groups_bp)
 application.register_blueprint(students_bp)
 application.register_blueprint(attandance_bp)
@@ -355,6 +357,7 @@ def get_user_achievements(login):
         ORDER BY date_obtained DESC
     ''', (login,)).fetchall()
     return [dict(a) for a in achievements]
+
 
 if __name__ == '__main__':
     application.run(host='0.0.0.0', debug=True)

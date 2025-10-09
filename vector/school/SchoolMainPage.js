@@ -31,6 +31,18 @@ const services = [
         color: "#5a0a6bff",
         path: "Tests",
     },
+    {
+        access_level: ["админ", "куратор"],
+        label: "???",
+        color: "#21030bff",
+        path: "Game",
+    },
+    {
+        access_level: ["админ", "куратор"],
+        label: "Добавить вопрос в форму",
+        color: "#cba5afff",
+        path: "AddQuestionQuize",
+    },
     // {
     //     access_level: ["админ", "куратор", "боец"],
     //     label: "Домашка",

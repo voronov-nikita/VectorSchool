@@ -35,6 +35,8 @@ import { HomeworkScreen } from "./school/HomeworkPage";
 import { TakeTestScreen } from "./school/TakeTestPage";
 import { TestsScreen } from "./school/TestsPage";
 import { AttendanceScreen } from "./pages/AttendancePage";
+import { GameScreen } from "./school/GamePage";
+import { AddQuestionForm } from "./school/AddQuestionPage";
 
 // Создаем конфигуратор Drawer и Stack
 const Drawer = createDrawerNavigator();
@@ -83,6 +85,30 @@ export default function App() {
                             drawerItemStyle: { display: "none" },
                         }}
                         component={SchoolGroupsScreen}
+                    />
+                    <Drawer.Screen
+                        name="Game"
+                        options={{
+                            headerTitle: "",
+                            headerShown: false,
+                            headerLeft: () => (
+                                <BackButton adress="SchoolMain" />
+                            ),
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={GameScreen}
+                    />
+                    <Drawer.Screen
+                        name="AddQuestionQuize"
+                        options={{
+                            headerTitle: "",
+                            headerShown: true,
+                            headerLeft: () => (
+                                <BackButton adress="SchoolMain" />
+                            ),
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={AddQuestionForm}
                     />
                     {/* <Drawer.Screen
                         name="SchoolJournal"
