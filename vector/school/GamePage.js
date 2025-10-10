@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 
 import { URL } from "../config";
 
@@ -11,6 +11,7 @@ const BUTTON_COLOR_WRONG = "#FF3B30";
 export const GameScreen = () => {
     const navigation = useNavigation();
 
+    const [isStartGame, setStartGame] = useState(false);
     const [questions, setQuestions] = useState([]);
     const [index, setIndex] = useState(0);
     const [timeLeft, setTimeLeft] = useState(5);
@@ -23,6 +24,10 @@ export const GameScreen = () => {
     ]);
     const [score, setScore] = useState(0);
     const [showModal, setShowModal] = useState(false);
+
+    useFocusEffect(() => {
+        setStartGame(true);
+    });
 
     useEffect(() => {
         setIndex(0);
@@ -40,16 +45,19 @@ export const GameScreen = () => {
     }, []);
 
     useEffect(() => {
-        if (questions.length === 0 || showModal) return;
+        console.log("OK");
+        if (isStartGame) {
+            if (questions.length === 0 || showModal) return;
 
-        if (timeLeft === 0) {
-            setShowModal(true);
+            if (timeLeft === 0) {
+                setShowModal(true);
+            }
+            const timer = setTimeout(
+                () => setTimeLeft(timeLeft > 0 ? timeLeft - 1 : 0),
+                1000
+            );
+            return () => clearTimeout(timer);
         }
-        const timer = setTimeout(
-            () => setTimeLeft(timeLeft > 0 ? timeLeft - 1 : 0),
-            1000
-        );
-        return () => clearTimeout(timer);
     }, [timeLeft, questions, showModal]);
 
     const fetchQuestions = async () => {
@@ -85,19 +93,21 @@ export const GameScreen = () => {
     };
 
     const nextQuestion = () => {
-        setSelectedIdx(null);
-        setButtonColors([
-            BUTTON_COLOR_DEFAULT,
-            BUTTON_COLOR_DEFAULT,
-            BUTTON_COLOR_DEFAULT,
-            BUTTON_COLOR_DEFAULT,
-        ]);
-        setTimeLeft(5);
+        if (isStartGame) {
+            setSelectedIdx(null);
+            setButtonColors([
+                BUTTON_COLOR_DEFAULT,
+                BUTTON_COLOR_DEFAULT,
+                BUTTON_COLOR_DEFAULT,
+                BUTTON_COLOR_DEFAULT,
+            ]);
+            setTimeLeft(5);
 
-        if (index < questions.length - 1) {
-            setIndex(index + 1);
-        } else {
-            setShowModal(true);
+            if (index < questions.length - 1) {
+                setIndex(index + 1);
+            } else {
+                setShowModal(true);
+            }
         }
     };
 
@@ -117,6 +127,7 @@ export const GameScreen = () => {
     };
 
     const exitQuize = () => {
+        setStartGame(false);
         setIndex(0);
         setScore(0);
         setTimeLeft(5);

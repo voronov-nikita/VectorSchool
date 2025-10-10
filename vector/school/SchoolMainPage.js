@@ -26,10 +26,10 @@ const services = [
         path: "SchoolGroups",
     },
     {
-        access_level: ["админ", "куратор"],
-        label: "Домашки",
-        color: "#5a0a6bff",
-        path: "Tests",
+        access_level: ["админ", "куратор", "боец"],
+        label: "Запись на экзамены",
+        color: "#099973ff",
+        path: "Exams",
     },
     {
         access_level: ["админ", "куратор"],

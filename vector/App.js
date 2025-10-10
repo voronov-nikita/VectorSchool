@@ -30,13 +30,13 @@ import { SchoolOneGroupScreen } from "./school/SchoolOneGroupPage";
 import { SchoolAchiveScreen } from "./school/SchoolAchivePage";
 import { SchoolMainScreen } from "./school/SchoolMainPage";
 import { CreateTestScreen } from "./school/CreateTestPage";
+import { AttendanceScreen } from "./pages/AttendancePage";
+import { AddQuestionForm } from "./school/AddQuestionPage";
+import { RecordExamScreen } from "./school/RecordExamPage";
 import { SchoolGroupsScreen } from "./school/GroupsPage";
-import { HomeworkScreen } from "./school/HomeworkPage";
 import { TakeTestScreen } from "./school/TakeTestPage";
 import { TestsScreen } from "./school/TestsPage";
-import { AttendanceScreen } from "./pages/AttendancePage";
 import { GameScreen } from "./school/GamePage";
-import { AddQuestionForm } from "./school/AddQuestionPage";
 
 // Создаем конфигуратор Drawer и Stack
 const Drawer = createDrawerNavigator();
@@ -59,7 +59,7 @@ export default function App() {
                         name="Auth"
                         options={{
                             headerShown: false,
-                            title: 'Авторизация',
+                            title: "Авторизация",
                             drawerItemStyle: { display: "none" },
                         }}
                         component={AuthScreen}
@@ -133,16 +133,16 @@ export default function App() {
                         component={TestsScreen}
                     />
                     <Drawer.Screen
-                        name="Homework"
+                        name="Exams"
                         options={{
-                            headerTitle: "Домашняя работа",
+                            headerTitle: "Запись на экзамены",
                             headerShown: true,
                             headerLeft: () => (
                                 <BackButton adress="SchoolMain" />
                             ),
                             drawerItemStyle: { display: "none" },
                         }}
-                        component={HomeworkScreen}
+                        component={RecordExamScreen}
                     />
                     <Drawer.Screen
                         name="TakeTest"
@@ -199,7 +199,7 @@ export default function App() {
                         options={{
                             title: "Инструкци и правила пользования",
                             headerTitleAlign: "center",
-                            drawerItemStyle: {display: 'none'}
+                            drawerItemStyle: { display: "none" },
                         }}
                         component={InstructionScreen}
                     />
@@ -250,7 +250,9 @@ export default function App() {
                         options={{
                             title: "Мероприятия",
                             headerTitleAlign: "center",
-                            headerLeft: () => <BackButton adress="SchoolMain"/>,
+                            headerLeft: () => (
+                                <BackButton adress="SchoolMain" />
+                            ),
                         }}
                         component={EventsScreen}
                     />
