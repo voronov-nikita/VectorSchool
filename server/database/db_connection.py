@@ -28,7 +28,8 @@ def init_db():
     from database.models.achievement_models import create_achievement_tables
     from database.models.event_models import create_event_tables
     from database.models.test_models import create_test_tables
-    from server.database.models.quize_model import create_database_quize
+    from database.models.quize_model import create_database_quize
+    from database.models.exams_model import create_exam_tables
 
     create_user_tables(db)
     create_group_tables(db)
@@ -37,5 +38,6 @@ def init_db():
     create_achievement_tables(db)
     create_event_tables(db)
     create_database_quize(db)
+    create_exam_tables(db)
 
     db.commit()

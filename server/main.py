@@ -16,6 +16,7 @@ from endpoints.flask_attendance import attandance_bp
 from endpoints.flask_students import students_bp
 from endpoints.flask_test import test_bp
 from endpoints.flask_quize import quize_bp
+from endpoints.flask_exams import exam_bp
 import os
 
 # <---------------- Определение основного КОНСТАНТ и зависимостей ---------------->
@@ -28,6 +29,7 @@ MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+application.register_blueprint(exam_bp)
 application.register_blueprint(test_bp)
 application.register_blueprint(user_bp)
 application.register_blueprint(quize_bp)
