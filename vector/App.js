@@ -37,6 +37,8 @@ import { SchoolGroupsScreen } from "./school/GroupsPage";
 import { TakeTestScreen } from "./school/TakeTestPage";
 import { TestsScreen } from "./school/TestsPage";
 import { GameScreen } from "./school/GamePage";
+import { HomeworkScreen } from "./school/HomeworkPage";
+import { HomeworkOneScreen } from "./school/HomeworkOnePage";
 
 // Создаем конфигуратор Drawer и Stack
 const Drawer = createDrawerNavigator();
@@ -110,16 +112,6 @@ export default function App() {
                         }}
                         component={AddQuestionForm}
                     />
-                    {/* <Drawer.Screen
-                        name="SchoolJournal"
-                        options={{
-                            headerTitle: "Журнал посещаемости",
-                            headerShown: true,
-                            headerLeft: () => <BackButton adress="SchoolMain"/>,
-                            drawerItemStyle: { display: "none" },
-                        }}
-                        component={JournalScreen}
-                    /> */}
                     <Drawer.Screen
                         name="Tests"
                         options={{
@@ -164,6 +156,37 @@ export default function App() {
                             drawerItemStyle: { display: "none" },
                         }}
                         component={SchoolOneGroupScreen}
+                    />
+                    <Drawer.Screen
+                        name="Scores"
+                        options={{
+                            headerTitle: "Оценки",
+                            headerLeft: () => (
+                                <BackButton adress="SchoolMain" />
+                            ),
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={}
+                    />
+                    <Drawer.Screen
+                        name="Homework"
+                        options={{
+                            headerTitle: "Домашние задания",
+                            headerLeft: () => (
+                                <BackButton adress="SchoolMain" />
+                            ),
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={HomeworkScreen}
+                    />
+                    <Drawer.Screen
+                        name="HomeworkOne"
+                        options={{
+                            headerTitle: "Домашние задания раздела",
+                            headerLeft: () => <BackButton adress="Homework" />,
+                            drawerItemStyle: { display: "none" },
+                        }}
+                        component={HomeworkOneScreen}
                     />
                     <Drawer.Screen
                         name="SchoolAchive"

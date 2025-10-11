@@ -17,6 +17,7 @@ from endpoints.flask_students import students_bp
 from endpoints.flask_test import test_bp
 from endpoints.flask_quize import quize_bp
 from endpoints.flask_exams import exam_bp
+from endpoints.flask_homework import homework_bp
 import os
 
 # <---------------- Определение основного КОНСТАНТ и зависимостей ---------------->
@@ -35,6 +36,7 @@ application.register_blueprint(user_bp)
 application.register_blueprint(quize_bp)
 application.register_blueprint(groups_bp)
 application.register_blueprint(students_bp)
+application.register_blueprint(homework_bp)
 application.register_blueprint(attandance_bp)
 
 

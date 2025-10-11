@@ -45,7 +45,6 @@ export const GameScreen = () => {
     }, []);
 
     useEffect(() => {
-        console.log("OK");
         if (isStartGame) {
             if (questions.length === 0 || showModal) return;
 
