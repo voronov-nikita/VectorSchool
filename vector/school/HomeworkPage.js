@@ -19,14 +19,37 @@ export const HomeworkScreen = () => {
     const [newSectionTitle, setNewSectionTitle] = useState("");
     const [confirmSection, setConfirmSection] = useState(null);
     const navigation = useNavigation();
+    const [level, setLevel] = useState("боец");
 
     useEffect(() => {
+        getAccess();
         fetchSections();
     }, []);
+
     const fetchSections = () => {
         fetch(`${URL}/homework_sections`)
             .then((res) => res.json())
             .then(setSections);
+    };
+
+    const getAccess = async () => {
+        const login = await AsyncStorage.getItem("authToken").then();
+        try {
+            const response = await fetch(
+                `${URL}/user/access_level?login=${login}`
+            );
+            const data = await response.json();
+
+            if (response.ok) {
+                setLevel(data.access_level);
+            } else {
+                console.warn("Ошибка сервера:", data.error);
+                return null;
+            }
+        } catch (error) {
+            console.error("Ошибка сети:", error);
+            return null;
+        }
     };
 
     const handleAddSection = () => {
@@ -69,12 +92,14 @@ export const HomeworkScreen = () => {
             >
                 <Text style={styles.sectionText}>{item.title}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => setConfirmSection(item)}
-            >
-                <AntDesign name="delete" size={22} color="#fff" />
-            </TouchableOpacity>
+            {["админ"].includes(level) ? (
+                <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => setConfirmSection(item)}
+                >
+                    <AntDesign name="delete" size={22} color="#fff" />
+                </TouchableOpacity>
+            ) : null}
         </View>
     );
 
@@ -88,15 +113,17 @@ export const HomeworkScreen = () => {
                     <Text style={styles.empty}>Нет разделов</Text>
                 }
             />
-            <TouchableOpacity
-                style={styles.addSectionBtn}
-                onPress={() => setShowAddSection(true)}
-            >
-                <AntDesign name="pluscircleo" size={22} color="#fff" />
-                <Text style={{ color: "#fff", marginLeft: 8 }}>
-                    Добавить раздел
-                </Text>
-            </TouchableOpacity>
+            {["админ"].includes(level) && (
+                <TouchableOpacity
+                    style={styles.addSectionBtn}
+                    onPress={() => setShowAddSection(true)}
+                >
+                    <AntDesign name="pluscircleo" size={22} color="#fff" />
+                    <Text style={{ color: "#fff", marginLeft: 8 }}>
+                        Добавить раздел
+                    </Text>
+                </TouchableOpacity>
+            )}
 
             {/* Новый раздел */}
             <Modal visible={showAddSection} transparent animationType="slide">

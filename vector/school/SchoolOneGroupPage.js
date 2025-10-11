@@ -31,7 +31,11 @@ export const SchoolOneGroupScreen = ({ route, navigation }) => {
         fetchStudents();
     }, [groupId]);
 
-    useEffect(async () => {
+    useEffect(() => {
+        getAccess();
+    }, []);
+
+    const getAccess = async () =>{
         const login = await AsyncStorage.getItem("authToken").then();
         try {
             const response = await fetch(
@@ -49,7 +53,7 @@ export const SchoolOneGroupScreen = ({ route, navigation }) => {
             console.error("Ошибка сети:", error);
             return null;
         }
-    }, []);
+    } 
 
     const fetchStudents = () => {
         setLoading(true);

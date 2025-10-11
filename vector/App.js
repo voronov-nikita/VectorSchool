@@ -157,7 +157,7 @@ export default function App() {
                         }}
                         component={SchoolOneGroupScreen}
                     />
-                    <Drawer.Screen
+                    {/* <Drawer.Screen
                         name="Scores"
                         options={{
                             headerTitle: "Оценки",
@@ -167,7 +167,7 @@ export default function App() {
                             drawerItemStyle: { display: "none" },
                         }}
                         component={}
-                    />
+                    /> */}
                     <Drawer.Screen
                         name="Homework"
                         options={{

@@ -19,14 +19,37 @@ export const HomeworkOneScreen = ({ route }) => {
     const [showAddHw, setShowAddHw] = useState(false);
     const [newHw, setNewHw] = useState({ title: "", url: "" });
     const [confirmHw, setConfirmHw] = useState(null);
+    const [level, setLevel] = useState("боец");
 
     useEffect(() => {
+        getAccess();
         fetchHomeworks();
     }, []);
+
     const fetchHomeworks = () => {
         fetch(`${URL}/homeworks?section_id=${sectionId}`)
             .then((res) => res.json())
             .then(setHomeworks);
+    };
+
+    const getAccess = async () => {
+        const login = await AsyncStorage.getItem("authToken").then();
+        try {
+            const response = await fetch(
+                `${URL}/user/access_level?login=${login}`
+            );
+            const data = await response.json();
+
+            if (response.ok) {
+                setLevel(data.access_level);
+            } else {
+                console.warn("Ошибка сервера:", data.error);
+                return null;
+            }
+        } catch (error) {
+            console.error("Ошибка сети:", error);
+            return null;
+        }
     };
 
     const handleAddHomework = () => {
@@ -64,12 +87,14 @@ export const HomeworkOneScreen = ({ route }) => {
             >
                 <Text style={styles.hwText}>{item.title}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => setConfirmHw(item)}
-            >
-                <AntDesign name="delete" size={22} color="#fff" />
-            </TouchableOpacity>
+            {["админ"].includes(level) ? (
+                <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => setConfirmHw(item)}
+                >
+                    <AntDesign name="delete" size={22} color="#fff" />
+                </TouchableOpacity>
+            ) : null}
         </View>
     );
 
@@ -84,15 +109,17 @@ export const HomeworkOneScreen = ({ route }) => {
                     <Text style={styles.empty}>Нет домашних заданий</Text>
                 }
             />
-            <TouchableOpacity
-                style={styles.addBtn}
-                onPress={() => setShowAddHw(true)}
-            >
-                <AntDesign name="pluscircleo" size={22} color="#fff" />
-                <Text style={{ color: "#fff", marginLeft: 8 }}>
-                    Добавить домашку
-                </Text>
-            </TouchableOpacity>
+            {["админ"].includes(level) ? (
+                <TouchableOpacity
+                    style={styles.addBtn}
+                    onPress={() => setShowAddHw(true)}
+                >
+                    <AntDesign name="pluscircleo" size={22} color="#fff" />
+                    <Text style={{ color: "#fff", marginLeft: 8 }}>
+                        Добавить домашку
+                    </Text>
+                </TouchableOpacity>
+            ) : null}
 
             {/* Добавить домашку */}
             <Modal visible={showAddHw} transparent animationType="slide">

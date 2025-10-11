@@ -30,6 +30,10 @@ export const GameScreen = () => {
     });
 
     useEffect(() => {
+        fetchQuestions();
+    }, [isStartGame]);
+
+    useEffect(() => {
         setIndex(0);
         setScore(0);
         setTimeLeft(5);
@@ -111,6 +115,7 @@ export const GameScreen = () => {
     };
 
     const restartGame = () => {
+        setStartGame(true);
         setIndex(0);
         setScore(0);
         setTimeLeft(5);

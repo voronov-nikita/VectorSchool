@@ -26,19 +26,19 @@ const services = [
         path: "SchoolGroups",
     },
     {
-        access_level: ["админ", "куратор", "боец"],
+        access_level: ["админ"],
         label: "Запись на экзамены",
         color: "#099973ff",
         path: "Exams",
     },
     {
-        access_level: ["админ", "куратор"],
+        access_level: ["админ", "куратор", "боец"],
         label: "???",
         color: "#21030bff",
         path: "Game",
     },
     {
-        access_level: ["админ", "куратор"],
+        access_level: ["админ"],
         label: "Добавить вопрос в форму",
         color: "#cba5afff",
         path: "AddQuestionQuize",
@@ -50,7 +50,7 @@ const services = [
         path: "Homework",
     },
     {
-        access_level: ["админ", "куратор", "училка"],
+        access_level: ["админ", "куратор"],
         label: "Достижения",
         color: "#b04429ff",
         path: "SchoolAchive",
