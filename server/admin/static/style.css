@@ -1,9 +1,0 @@
-body {
-    font-family: "Inter", Arial, sans-serif;
-}
-
-.nav-link.active,
-.nav-link.bg-secondary {
-    background: #343a40 !important;
-    border-radius: 8px;
-}

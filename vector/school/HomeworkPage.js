@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AntDesign } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { URL } from "../config";
 
 export const HomeworkScreen = () => {
@@ -83,11 +84,12 @@ export const HomeworkScreen = () => {
         >
             <TouchableOpacity
                 style={styles.sectionBtn}
-                onPress={() =>
+                onPress={() =>{
+                    console.log(item)
                     navigation.navigate("HomeworkOne", {
                         sectionId: item.id,
                         sectionTitle: item.title,
-                    })
+                    })}
                 }
             >
                 <Text style={styles.sectionText}>{item.title}</Text>
