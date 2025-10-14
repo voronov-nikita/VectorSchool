@@ -26,7 +26,7 @@ const services = [
         path: "SchoolGroups",
     },
     {
-        access_level: ["админ"],
+        access_level: ["админ", "куратор", "боец"],
         label: "Запись на экзамены",
         color: "#099973ff",
         path: "Exams",

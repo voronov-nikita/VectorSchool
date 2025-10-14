@@ -16,15 +16,18 @@ import { URL } from "../config";
 
 export const RecordExamScreen = () => {
     const [exams, setExams] = useState([]);
-    const [level, setLevel] = useState("student");
+    const [level, setLevel] = useState("боец");
     const [showAddModal, setShowAddModal] = useState(false);
     const [newExam, setNewExam] = useState({
         place: "",
         date: "",
         start: "",
         end: "",
+        capacity: "",
     });
     const [myLogin, setMyLogin] = useState("");
+    const [errorModalVisible, setErrorModalVisible] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
 
     useEffect(() => {
         fetchExams();
@@ -42,6 +45,11 @@ export const RecordExamScreen = () => {
             .then(setExams);
     };
 
+    const showError = (message) => {
+        setErrorMessage(message);
+        setErrorModalVisible(true);
+    };
+
     const handleSignup = (examId, booked) => {
         fetch(`${URL}/exam/${examId}/signup`, {
             method: "POST",
@@ -50,53 +58,77 @@ export const RecordExamScreen = () => {
         }).then(async (resp) => {
             if (!resp.ok) {
                 const res = await resp.json();
-                alert(res.error || "Слот занят");
+                showError(res.error || "Слот занят");
             }
             fetchExams();
         });
     };
 
     const handleAddExam = () => {
+        const capacityNum = parseInt(newExam.capacity, 10);
+        if (isNaN(capacityNum) || capacityNum < 1) {
+            showError(
+                "Введите корректное количество мест (целое число от 1 и выше)"
+            );
+            return;
+        }
         fetch(`${URL}/exams`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newExam),
+            body: JSON.stringify({
+                place: newExam.place,
+                date: newExam.date,
+                start: newExam.start,
+                end: newExam.end,
+                capacity: capacityNum,
+            }),
         }).then(() => {
             setShowAddModal(false);
-            setNewExam({ place: "", date: "", start: "", end: "" });
+            setNewExam({
+                place: "",
+                date: "",
+                start: "",
+                end: "",
+                capacity: "1",
+            });
             fetchExams();
         });
     };
 
     const renderExam = ({ item }) => {
-        const booked = item.booked_student === myLogin;
-        const slotFree = !item.booked_student;
+        // booked_students — массив логинов студентов, записанных на экзамен (должен быть в API)
+        const userBooked = item.booked_students?.includes(myLogin);
+        const slotFree = item.available_seats > 0;
+
         return (
             <View style={styles.examCard}>
                 <Text style={styles.examTitle}>{item.place}</Text>
                 <Text style={styles.examTime}>
-                    {item.date} {"\n"}{item.start}-{item.end}
+                    {item.date} {"\n"}
+                    {item.start}-{item.end}
                 </Text>
                 <Text style={styles.examBooked}>
-                    {item.booked_student
-                        ? `Записан: ${item.booked_student}`
-                        : "Слот свободен"}
+                    {item.booked_count > 0
+                        ? `${item.booked_count} из ${item.capacity} мест занято`
+                        : "Слотов свободно: " + item.capacity}
                 </Text>
-
-                {(slotFree || booked) && (
+                {(slotFree || userBooked) && (
                     <TouchableOpacity
                         style={[
                             styles.signupBtn,
-                            { backgroundColor: booked ? "#944e4eff" : "#278B22" },
+                            {
+                                backgroundColor: userBooked
+                                    ? "#944e4eff"
+                                    : "#278B22",
+                            },
                         ]}
-                        onPress={() => handleSignup(item.id, booked)}
+                        onPress={() => handleSignup(item.id, userBooked)}
                     >
                         <Text style={{ color: "#fff" }}>
-                            {booked ? "Отменить запись" : "Записаться"}
+                            {userBooked ? "Отменить запись" : "Записаться"}
                         </Text>
                     </TouchableOpacity>
                 )}
-                {/* Если слот занят другим — никакой кнопки */}
             </View>
         );
     };
@@ -135,7 +167,7 @@ export const RecordExamScreen = () => {
                             Добавить экзамен
                         </Text>
                         <TextInput
-                            placeholder="Аудитория"
+                            placeholder="Место"
                             style={styles.input}
                             value={newExam.place}
                             onChangeText={(v) =>
@@ -166,6 +198,15 @@ export const RecordExamScreen = () => {
                                 setNewExam((n) => ({ ...n, end: v }))
                             }
                         />
+                        <TextInput
+                            placeholder="Количество мест"
+                            style={styles.input}
+                            keyboardType="numeric"
+                            value={newExam.capacity}
+                            onChangeText={(v) =>
+                                setNewExam((n) => ({ ...n, capacity: v }))
+                            }
+                        />
                         <View
                             style={{
                                 flexDirection: "row",
@@ -186,6 +227,25 @@ export const RecordExamScreen = () => {
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
+
+            <Modal
+                visible={errorModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setErrorModalVisible(false)}
+            >
+                <View style={styles.errorModalOverlay}>
+                    <View style={styles.errorModalBox}>
+                        <Text style={styles.errorModalText}>
+                            {errorMessage}
+                        </Text>
+                        <Button
+                            title="Закрыть"
+                            onPress={() => setErrorModalVisible(false)}
+                        />
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -201,14 +261,6 @@ const styles = StyleSheet.create({
     examTitle: { fontSize: 19, fontWeight: "bold" },
     examTime: { fontSize: 15, marginVertical: 3, color: "#337AFF" },
     examBooked: { fontSize: 13, color: "#666" },
-    loginTag: {
-        backgroundColor: "#b8eaff",
-        margin: 3,
-        padding: 5,
-        borderRadius: 7,
-        fontSize: 13,
-        color: "#555",
-    },
     signupBtn: {
         marginTop: 11,
         padding: 10,
@@ -250,5 +302,25 @@ const styles = StyleSheet.create({
         marginVertical: 7,
         padding: 7,
         fontSize: 15,
+    },
+    errorModalOverlay: {
+        flex: 1,
+        backgroundColor: "#00000099",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    errorModalBox: {
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 20,
+        width: 300,
+        alignItems: "center",
+    },
+    errorModalText: {
+        fontSize: 16,
+        marginBottom: 20,
+        color: "#cc0000",
+        textAlign: "center",
     },
 });

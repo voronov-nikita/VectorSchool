@@ -29,9 +29,12 @@ export const HomeworkOneScreen = ({ route }) => {
     }, []);
 
     // какая-то хуета с ним твориться
-    useFocusEffect(fetchHomeworks());
+    useEffect(() => {
+        fetchHomeworks();
+    }, [sectionId]);
 
     const fetchHomeworks = () => {
+        if (!sectionId) return;
         fetch(`${URL}/homeworks?section_id=${sectionId}`)
             .then((res) => res.json())
             .then(setHomeworks);
