@@ -85,7 +85,6 @@ export const HomeworkScreen = () => {
             <TouchableOpacity
                 style={styles.sectionBtn}
                 onPress={() =>{
-                    console.log(item)
                     navigation.navigate("HomeworkOne", {
                         sectionId: item.id,
                         sectionTitle: item.title,

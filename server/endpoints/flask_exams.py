@@ -11,24 +11,91 @@ def get_exams():
     exams = db.execute(
         'SELECT * FROM exams ORDER BY date, start_time').fetchall()
     result = []
+
     for exam in exams:
-        booked_students = db.execute(
-            'SELECT student_login FROM exam_signups WHERE exam_id = ?', (
-                exam['id'],)
+        # Получаем список записавшихся с логинами, ФИО и Telegram
+        signups = db.execute(
+            '''
+            SELECT u.login, u.fio, u.telegram FROM exam_signups es
+            JOIN users u ON es.student_login = u.login
+            WHERE es.exam_id = ?
+            ''',
+            (exam['id'],)
         ).fetchall()
-        booked_logins = [row['student_login'] for row in booked_students]
+        booked_students = [
+            {'login': row['login'], 'fio': row['fio'],
+                'telegram': row['telegram']}
+            for row in signups
+        ]
+        booked_count = len(booked_students)
+        available_seats = exam['capacity'] - booked_count
+
         result.append({
             'id': exam['id'],
-            'place': exam['place'],
+            'address': exam['address'],
+            'auditorium': exam['auditorium'],
+            'examType': exam['examType'],
             'date': exam['date'],
             'start': exam['start_time'],
             'end': exam['end_time'],
             'capacity': exam['capacity'],
-            'booked_count': len(booked_logins),
-            'available_seats': exam['capacity'] - len(booked_logins),
-            'booked_students': booked_logins,
+            'booked_count': booked_count,
+            'available_seats': available_seats,
+            'booked_students': booked_students,
         })
+
     return jsonify(result)
+
+
+@exam_bp.route('/exams/<int:exam_id>/edit', methods=['POST'])
+def edit_exam(exam_id):
+    data = request.get_json()
+    db = get_db()
+    db.execute('''
+        UPDATE exams SET address = ?, auditorium = ?, examType = ?, date = ?, start_time = ?, end_time = ?, capacity = ?
+        WHERE id = ?
+    ''',
+               (
+                   data['address'],
+                   data['auditorium'],
+                   data.get('examType', 'Общий экзамен'),
+                   data['date'],
+                   data['start'],
+                   data['end'],
+                   data['capacity'],
+                   exam_id
+               ))
+    db.commit()
+    return jsonify({'result': 'updated'})
+
+
+@exam_bp.route('/exams/<int:exam_id>', methods=['DELETE'])
+def delete_exam(exam_id):
+    db = get_db()
+    db.execute('DELETE FROM exams WHERE id = ?', (exam_id,))
+    db.commit()
+    return jsonify({'result': 'deleted'})
+
+
+@exam_bp.route('/exams', methods=['POST'])
+def add_exam():
+    data = request.get_json()
+    db = get_db()
+    capacity = data.get('capacity', 1)
+    db.execute('''
+        INSERT INTO exams (address, auditorium, examType, date, start_time, end_time, capacity)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        data['address'],
+        data['auditorium'],
+        data.get('examType', 'Общий экзамен'),
+        data['date'],
+        data['start'],
+        data['end'],
+        capacity
+    ))
+    db.commit()
+    return jsonify({'result': 'ok'})
 
 
 @exam_bp.route('/exam/<int:exam_id>/signup', methods=['POST'])
@@ -44,13 +111,13 @@ def signup_exam(exam_id):
         return jsonify({'error': 'User not found'}), 404
 
     if signup:
-        # Проверка на занятость слота пользователя на этот экзамен
+        # Проверка, что данный пользователь еще не записан на этот экзамен
         exists = db.execute(
             'SELECT 1 FROM exam_signups WHERE exam_id = ? AND student_login = ?', (exam_id, login)).fetchone()
         if exists:
             return jsonify({'error': 'Вы уже зарегистрированы на экзамен'}), 409
 
-        # Проверка на общую заполненность экзамена
+        # Проверка вместимости
         booked_count = db.execute(
             'SELECT COUNT(*) AS count FROM exam_signups WHERE exam_id = ?', (exam_id,)).fetchone()['count']
         capacity = db.execute(
@@ -65,23 +132,9 @@ def signup_exam(exam_id):
                    (exam_id, login, now))
         db.commit()
         return jsonify({'result': 'signed up'})
-
     else:
         # Отмена записи по логину пользователя
         db.execute(
             'DELETE FROM exam_signups WHERE exam_id = ? AND student_login = ?', (exam_id, login))
         db.commit()
         return jsonify({'result': 'signup removed'})
-
-
-@exam_bp.route('/exams', methods=['POST'])
-def add_exam():
-    data = request.get_json()
-    db = get_db()
-
-    # Проверка на наличие capacity, по умолчанию если не указано - 1
-    capacity = data.get('capacity', 1)
-    db.execute('INSERT INTO exams (place, date, start_time, end_time, capacity) VALUES (?, ?, ?, ?, ?)',
-               (data['place'], data['date'], data['start'], data['end'], capacity))
-    db.commit()
-    return jsonify({'result': 'ok'})

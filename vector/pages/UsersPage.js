@@ -209,7 +209,7 @@ export const UsersScreen = () => {
                                         openTelegramLink(selected.telegram)
                                     }
                                 >
-                                    Telegram: {selected.telegram}
+                                    Телеграмм: {selected.telegram}
                                 </Text>
                                 <TouchableOpacity
                                     style={styles.closeButton}

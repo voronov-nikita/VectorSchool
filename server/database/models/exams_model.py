@@ -2,7 +2,9 @@ def create_exam_tables(db):
     db.execute('''
         CREATE TABLE IF NOT EXISTS exams (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            place TEXT NOT NULL,
+            address TEXT NOT NULL,
+            auditorium TEXT NOT NULL,
+            examType TEXT NOT NULL DEFAULT 'Общий экзамен',
             date TEXT NOT NULL,
             start_time TEXT NOT NULL,
             end_time TEXT NOT NULL,

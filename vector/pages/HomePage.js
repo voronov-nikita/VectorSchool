@@ -77,7 +77,6 @@ export const HomeScreen = ({ navigation }) => {
 
             if (response.ok) {
                 setLevel(data.access_level);
-                console.log(level);
             } else {
                 console.warn("Ошибка сервера:", data.error);
                 return null;

@@ -69,7 +69,6 @@ export const AuthScreen = ({ navigation }) => {
             });
             const data = await response.json();
             if (response.ok && data) {
-                console.log(data);
                 setMessage("");
                 // Сохраняем флаг авторизации (лучше токен, если есть)
                 await AsyncStorage.setItem("authToken", login); // или data.token
