@@ -4,12 +4,12 @@
 #
 
 # расширяем пространство имен
+from database.models.student_models import *
+from database.db_connection import get_db
+from flask import jsonify, request, Blueprint
 import sys
 sys.path.append("../")
 
-from flask import jsonify, request, Blueprint
-from database.db_connection import get_db
-from server.database.models.student_models import *
 
 students_bp = Blueprint('students', __name__)
 

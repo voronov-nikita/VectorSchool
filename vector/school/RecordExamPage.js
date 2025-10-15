@@ -295,6 +295,12 @@ export const RecordExamScreen = () => {
                 >
                     {item.examType}
                 </Text>
+                <Text style={styles.examBooked}>
+                    {item.booked_count > 0
+                        ? `${item.booked_count} из ${item.capacity} мест занято`
+                        : "Слотов свободно: " + item.capacity}
+                </Text>
+
                 <Text style={{ fontWeight: "bold" }}>Записались:</Text>
                 {item.booked_students && item.booked_students.length > 0 ? (
                     item.booked_students.map((student, idx) =>

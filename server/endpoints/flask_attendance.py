@@ -7,7 +7,7 @@
 import sys
 sys.path.append("../")
 
-from server.database.models.attendance_models import set_attendance
+from database.models.attendance_models import set_attendance
 from flask import jsonify, request, Blueprint
 from database.db_connection import get_db
 

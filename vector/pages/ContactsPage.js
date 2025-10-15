@@ -33,7 +33,7 @@ export const ContactsScreen = () => {
         },
         {
             id: "3",
-            fullName: "Леонов Даниил\n",
+            fullName: "Леонов Даниил\nАлексеевич",
             telegram: "@darbet17",
             vk: "https://vk.com/darbet01",
             email: "-",
@@ -51,7 +51,7 @@ export const ContactsScreen = () => {
         },
         {
             id: "5",
-            fullName: "Бальданова Анна \nВладиславовна",
+            fullName: "Бельданова Анна \nВладиславовна",
             telegram: "@annabeldanova",
             vk: "https://vk.com/annabeldanova",
             email: "beldanova@mirea.ru",

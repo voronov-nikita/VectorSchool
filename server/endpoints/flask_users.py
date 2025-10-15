@@ -4,11 +4,12 @@
 #
 # расширяем пространство имен
 
+from database.models.user_models import get_user_by_login, verify_password, get_user_access_level_from_db, get_fighters, group_top_users, add_user, get_db
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Blueprint, jsonify, request
 import sys
 sys.path.append("../")
 
-from flask import Blueprint, jsonify, request
-from server.database.models.user_models import get_user_by_login, verify_password, get_user_access_level_from_db, get_fighters, group_top_users, add_user
 
 user_bp = Blueprint('users', __name__)
 
@@ -49,8 +50,27 @@ def login():
     })
 
 
-# def allowed_file(filename):
-#     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+@user_bp.route('/profile/<login>/rating', methods=['PUT'])
+def update_user_rating(login):
+    data = request.get_json()
+    if not data or 'rating' not in data:
+        return jsonify({'error': 'Отсутствует параметр rating'}), 400
+
+    try:
+        rating = float(data['rating'])
+    except ValueError:
+        return jsonify({'error': 'Некорректный формат rating'}), 400
+
+    db = get_db()
+    try:
+        result = db.execute(
+            'UPDATE users SET rating = ? WHERE login = ?', (rating, login))
+        db.commit()
+        if result.rowcount == 0:
+            return jsonify({'error': 'Пользователь не найден'}), 404
+        return jsonify({'message': 'Рейтинг обновлен'})
+    except Exception as e:
+        return jsonify({'error': f'Ошибка при обновлении рейтинга: {str(e)}'}), 500
 
 
 @user_bp.route('/user/access_level', methods=['GET'])
@@ -119,3 +139,36 @@ def rating_api():
     fighters = get_fighters(sort='rating')
     top_10 = group_top_users(fighters, max_line=3, top_n=10)
     return jsonify({'top_10': top_10})
+
+
+@user_bp.route('/profile/<login>/change_password', methods=['POST'])
+def change_password(login):
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Отсутствуют данные'}), 400
+
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    if not old_password or not new_password:
+        return jsonify({'error': 'Укажите старый и новый пароли'}), 400
+
+    db = get_db()
+
+    user = db.execute('SELECT * FROM users WHERE login = ?',
+                      (login,)).fetchone()
+    if not user:
+        return jsonify({'error': 'Пользователь не найден'}), 404
+
+    if not check_password_hash(user['password'], old_password):
+        return jsonify({'error': 'Старый пароль неверный'}), 401
+
+    new_hashed = generate_password_hash(new_password)
+
+    try:
+        db.execute('UPDATE users SET password = ? WHERE login = ?',
+                   (new_hashed, login))
+        db.commit()
+        return jsonify({'message': 'Пароль успешно изменён'})
+    except Exception as e:
+        return jsonify({'error': f'Ошибка при обновлении пароля: {str(e)}'}), 500

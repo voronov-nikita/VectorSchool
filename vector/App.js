@@ -39,6 +39,7 @@ import { TestsScreen } from "./school/TestsPage";
 import { GameScreen } from "./school/GamePage";
 import { HomeworkScreen } from "./school/HomeworkPage";
 import { HomeworkOneScreen } from "./school/HomeworkOnePage";
+import { ScoreScreen } from "./school/ScorePage";
 
 // Создаем конфигуратор Drawer и Stack
 const Drawer = createDrawerNavigator();
@@ -157,7 +158,7 @@ export default function App() {
                         }}
                         component={SchoolOneGroupScreen}
                     />
-                    {/* <Drawer.Screen
+                    <Drawer.Screen
                         name="Scores"
                         options={{
                             headerTitle: "Оценки",
@@ -166,8 +167,8 @@ export default function App() {
                             ),
                             drawerItemStyle: { display: "none" },
                         }}
-                        component={}
-                    /> */}
+                        component={ScoreScreen}
+                    />
                     <Drawer.Screen
                         name="Homework"
                         options={{
