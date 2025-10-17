@@ -353,7 +353,7 @@ export const RecordExamScreen = () => {
                         </Text>
                     </TouchableOpacity>
                 )}
-                {["админ", "куратор"].includes(level) && (
+                {["админ"].includes(level) && (
                     <View style={{ flexDirection: "row", marginTop: 10 }}>
                         <TouchableOpacity
                             style={styles.editBtn}
@@ -402,7 +402,7 @@ export const RecordExamScreen = () => {
                 renderItem={renderExam}
             />
 
-            {["админ", "куратор"].includes(level) && (
+            {["админ"].includes(level) && (
                 <TouchableOpacity
                     style={styles.fab}
                     activeOpacity={0.8}

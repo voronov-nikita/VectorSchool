@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
-    Button,
     StyleSheet,
     ScrollView,
     ActivityIndicator,
@@ -177,22 +176,24 @@ export const ProfileScreen = ({ navigation }) => {
                     )}
                 </View>
 
-                {/* Кнопка открытия модалки смены пароля */}
-                <TouchableOpacity
-                    style={styles.openModalButton}
-                    onPress={() => setModalVisible(true)}
-                >
-                    <Text style={styles.openModalButtonText}>
-                        🔒 Изменить пароль
-                    </Text>
-                </TouchableOpacity>
-
                 <View style={styles.bottomRow}>
-                    <Button
-                        title="Выйти из системы"
+                    {/* Кнопка открытия модалки смены пароля */}
+                    <TouchableOpacity
+                        style={styles.openModalButton}
+                        onPress={() => setModalVisible(true)}
+                    >
+                        <Text style={styles.openModalButtonText}>
+                            🔒 Изменить пароль
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.openModalButtonExit}
                         onPress={handleLogout}
-                        color="#ff3333ff"
-                    />
+                    >
+                        <Text style={styles.openModalButtonText}>
+                            ❌ Выйти из системы
+                        </Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
 
@@ -314,6 +315,13 @@ const styles = StyleSheet.create({
     },
     openModalButton: {
         backgroundColor: "#337AFF",
+        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 18,
+        marginBottom: 24,
+    },
+    openModalButtonExit: {
+        backgroundColor: "#ff3333ff",
         borderRadius: 10,
         paddingVertical: 12,
         paddingHorizontal: 18,

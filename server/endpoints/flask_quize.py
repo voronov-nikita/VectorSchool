@@ -3,7 +3,6 @@ sys.path.append("../")
 
 from flask import request, jsonify, Blueprint
 from database.models.quize_model import get_all_questions, add_question_to_db
-from database.db_connection import get_db
 
 quize_bp = Blueprint('quize', __name__)
 
