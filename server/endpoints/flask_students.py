@@ -1,16 +1,21 @@
 #
-# Вынесенные эндпоинты, касающихся групп пользователей
-# Например эндпоинт /groups
+# Вынесенные эндпоинты, касающихся студентов школы Вектора 2025
+# 
+# Например эндпоинт /student для получения списка всех студентов 
+# с именем и фамилией, и при необходимости другая информация
 #
 
-# расширяем пространство имен
-from database.models.student_models import *
-from database.db_connection import get_db
-from flask import jsonify, request, Blueprint
+# расширяем пространство видимости
 import sys
 sys.path.append("../")
 
 
+from flask import jsonify, request, Blueprint
+
+from database.models.student_models import *
+from database.db_connection import get_db
+
+# модульная модель приложения flask
 students_bp = Blueprint('students', __name__)
 
 

@@ -1,11 +1,15 @@
-# main.py (фрагменты сервера Flask)
+# 
+# Модуль для обработки эндпоинтов тестов на платформе
+# 
+# Система тестов подразумевает собой
+# 
+
+from database.models.test_models import add_test_with_questions
+from database.models.test_models import get_all_tests
+from werkzeug.utils import secure_filename
+from database.db_connection import get_db
 
 from flask import Blueprint, request, jsonify
-
-from database.db_connection import get_db, close_db, init_db
-from database.models.user_models import get
-from database.models.test_models import create_test_tables, add_test_with_questions, save_uploaded_files
-from werkzeug.utils import secure_filename
 import uuid
 import os
 

@@ -1,14 +1,17 @@
 #
 # Вынесенные эндпоинты, касающихся базовых компонентов
-# Например эндпоинт /profile или /users
+# 
+# Например эндпоинт /profile для получения информации 
+# или /users для получения все пользователей на платформе
 #
-# расширяем пространство имен
+
+# расширяем пространство видимости для импортов
+import sys
+sys.path.append("../")
 
 from database.models.user_models import get_user_by_login, verify_password, get_user_access_level_from_db, get_fighters, group_top_users, add_user, get_db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Blueprint, jsonify, request
-import sys
-sys.path.append("../")
 
 
 user_bp = Blueprint('users', __name__)

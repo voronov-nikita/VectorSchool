@@ -1,3 +1,9 @@
+# 
+# Модуль для обработки эндпоинтов по экзаменам
+# 
+# Например на запрос /exams выводиться ответ 
+# 
+
 from flask import Blueprint, request, jsonify
 from database.db_connection import get_db
 import datetime

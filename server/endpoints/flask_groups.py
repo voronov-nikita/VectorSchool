@@ -9,7 +9,7 @@ sys.path.append("../")
 
 from flask import jsonify, request, Blueprint
 from database.db_connection import get_db
-from server.database.models.group_models import get_groups, add_group
+from database.models.group_models import get_groups, add_group
 
 groups_bp = Blueprint('groups', __name__)
 
